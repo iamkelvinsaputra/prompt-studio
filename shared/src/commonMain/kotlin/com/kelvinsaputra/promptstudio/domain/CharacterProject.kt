@@ -52,10 +52,8 @@ data class OutputConfiguration(
     val clockSafe: Boolean = true,
     val iconSafe: Boolean = true,
 ) {
-    // Invalid in-progress input stays editable, but is never emitted as an aspect ratio.
-    val aspectRatio: String? get() = type.ratio ?: customAspectRatio.trim().takeIf {
-        Regex("[1-9][0-9]{0,4}:[1-9][0-9]{0,4}").matches(it)
-    }
+    // Prompt-authoring text, not image dimensions: custom ratios need no numeric parser.
+    val aspectRatio: String? get() = type.ratio ?: customAspectRatio.trim().takeIf { it.isNotEmpty() }
 }
 
 data class CharacterProject(

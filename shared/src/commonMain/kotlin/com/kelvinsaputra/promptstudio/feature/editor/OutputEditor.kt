@@ -13,7 +13,7 @@ fun OutputEditor(value: OutputConfiguration, onChange: (OutputConfiguration) -> 
         TextField("Custom output intent", value.customIntent) { onChange(value.copy(customIntent = it)) }
         OutlinedTextField(
             value = value.customAspectRatio, onValueChange = { onChange(value.copy(customAspectRatio = it)) },
-            label = { Text("Aspect ratio") }, supportingText = { Text("Use positive whole numbers, e.g. 3:2. Required before copying.") },
+            label = { Text("Aspect ratio") }, supportingText = { Text("Enter a ratio or description, e.g. 3:2 or widescreen. Required before copying.") },
             isError = value.aspectRatio == null, singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
     } else {

@@ -13,18 +13,24 @@ class PromptCompiler {
             section("COSTUME", costumeBlock(costume)),
             section("POSE", poseBlock(pose)),
             section("COMPOSITION", composition(output)),
-            section("PRIORITY STACK", "1. subject presence\n2. silhouette\n3. costume design\n4. composition"),
         ).joinToString("\n\n"))
     }
 
     private fun section(title: String, body: String): String? =
         body.takeIf { it.isNotBlank() }?.let { "$title\n\n$it" }
 
+    private fun subsection(title: String, body: String): String? =
+        body.takeIf { it.isNotBlank() }?.let { "$title\n$it" }
+
     private fun bullet(label: String, value: String?): String? =
         value?.trim()?.takeIf { it.isNotEmpty() }?.let { "- $label: $it" }
 
+    // Normalize only authored sentence endings; preserve punctuation inside the text.
+    private fun sentenceContent(value: String): String =
+        value.trim().trimEnd { it.isWhitespace() || it in ".!?" }
+
     private fun sentence(label: String, value: String): String? =
-        value.trim().takeIf { it.isNotEmpty() }?.let { "$label: ${it.trimEnd('.', '!', '?')}." }
+        sentenceContent(value).takeIf { it.isNotEmpty() }?.let { "$label: $it." }
 
     private fun costumeBlock(c: CostumeConfiguration): String {
         val layers = listOfNotNull(
@@ -40,11 +46,11 @@ class PromptCompiler {
         ).joinToString("\n")
         return listOfNotNull(
             sentence("Costume concept", c.outfitIdentity),
-            section("Base outfit:", layers),
+            subsection("Base outfit:", layers),
             sentence("Material feel", c.materialFeel),
             sentence("Exposure level", c.exposureLevel),
             "Costume requirements:\n- believable seams\n- practical closures\n- realistic fabric thickness\n- readable material differences\n- understandable layering\n- plausible construction",
-            section("Additional costume notes:", c.customNotes.trim()),
+            subsection("Additional costume notes:", c.customNotes.trim()),
         ).joinToString("\n\n")
     }
 
@@ -58,13 +64,14 @@ class PromptCompiler {
         bullet("gaze", p.gaze?.wording),
         bullet("overall energy", p.energy?.wording),
         bullet("motion direction", p.motionDirection),
-        section("Additional pose notes:", p.customNotes.trim()),
+        subsection("Additional pose notes:", p.customNotes.trim()),
     ).joinToString("\n")
 
     private fun outputIntent(o: OutputConfiguration): String {
-        val intent = if (o.type == OutputType.CUSTOM) o.customIntent.trim().ifEmpty { "illustration" } else o.type.intent
+        val intent = if (o.type == OutputType.CUSTOM) sentenceContent(o.customIntent).ifEmpty { "illustration" } else o.type.intent
         val ratio = o.aspectRatio?.let { " in $it" }.orEmpty()
-        return "Create a ${intent.trimEnd('.')}$ratio."
+        val article = if (intent.first().lowercaseChar() in "aeiou") "an" else "a"
+        return "Create $article $intent$ratio."
     }
 
     private fun composition(o: OutputConfiguration): String = listOfNotNull(
