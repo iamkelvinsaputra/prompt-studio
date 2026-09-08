@@ -15,6 +15,18 @@ fun App() {
     val editor = viewModel { EditorViewModel() }
     val state by editor.state.collectAsStateWithLifecycle()
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF346784), secondary = Color(0xFF526575))) {
-        EditorScreen(state, editor::selectModule, editor::setCostume, editor::setPose, editor::setOutput)
+        EditorScreen(
+            state = state,
+            onModule = editor::selectModule,
+            onCostume = editor::setCostume,
+            onPose = editor::setPose,
+            onOutput = editor::setOutput,
+            onCostumeLocks = editor::setCostumeLocks,
+            onPoseLocks = editor::setPoseLocks,
+            onRandomizeCostume = editor::randomizeCostume,
+            onRandomizePose = editor::randomizePose,
+            onResetCostume = editor::resetCostume,
+            onResetPose = editor::resetPose,
+        )
     }
 }

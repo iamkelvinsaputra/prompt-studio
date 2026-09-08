@@ -30,7 +30,7 @@ The Android APK is `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
 - **Output:** wallpaper, square, and portrait presets derive their aspect ratios. Custom accepts a ratio or descriptive string such as `3:2` or `widescreen`. Blank ratios disable Copy Prompt until filled.
 - **Prompt:** selectable live text, available as a dedicated page and alongside the editor in wide windows. **Copy Prompt** copies the complete prompt from any component.
 
-Edits survive Android activity configuration changes through the shared ViewModel. Closing/restarting the app or Android process death resets the project. Local saving, serialization/export, and randomization are deferred. There is no image generation, backend, or network integration.
+Edits survive Android activity configuration changes through the shared ViewModel. Closing/restarting the app or Android process death resets the project. Local saving and serialization/export are deferred. There is no image generation, backend, or network integration.
 
 ## Code boundaries
 
@@ -51,3 +51,13 @@ Vocabulary and style wording come from [the character prompt cheatsheet](docs/ch
 `EditorScreen` uses available content width: below 840 dp, horizontally scrolling section chips sit above a single editor; at 840 dp, a sidebar appears; at 1240 dp, the live preview appears alongside the editor. Each editor remembers its scroll position when switching sections. The sidebar also scrolls in short windows.
 
 All editors, preview, state, and clipboard feedback live in `commonMain`. Only constructing the clipboard payload needs Android `ClipData` in `androidMain` and AWT `StringSelection` in `jvmMain` (this repository's Desktop source set). Compose's shared `LocalClipboard` performs the write.
+
+## Explore costume and pose
+
+Each module has **Randomize**, **Reset**, **Lock All**, and **Unlock All**. Lock buttons beside finite-choice fields protect those values from randomization; manual edits remain available. Authored fields are always preserved during randomization, so they need no lock toggle. Customization locks apply to the whole marker selection, including an empty selection.
+
+**Reset** restores the entire selected module to its demo configuration, including notes and locked values. It preserves that module's lock choices and all other modules. This behavior is stated beside the controls.
+
+`EditorRandomizer` is plain Kotlin editor logic, accepts `kotlin.random.Random`, and chooses only existing vocabulary. Inject `Random(seed)` for repeatable tests. Single-choice fields select a different value when alternatives exist; customization selects a different set of zero, one, or two markers. Pose weight suggestions avoid obvious seated/standing mismatches, but locks and authored notes take precedence, so review their compatibility when exploring.
+
+Locks are typed sets in `EditorUiState`, outside `CharacterProject`. They never enter compiled prompts and last only for the session. The compiler remains unchanged and deterministic.

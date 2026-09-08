@@ -24,6 +24,12 @@ fun EditorScreen(
     onCostume: (CostumeConfiguration) -> Unit,
     onPose: (PoseConfiguration) -> Unit,
     onOutput: (OutputConfiguration) -> Unit,
+    onCostumeLocks: (Set<CostumeField>) -> Unit,
+    onPoseLocks: (Set<PoseField>) -> Unit,
+    onRandomizeCostume: () -> Unit,
+    onRandomizePose: () -> Unit,
+    onResetCostume: () -> Unit,
+    onResetPose: () -> Unit,
 ) {
     val sectionState = rememberSaveableStateHolder()
     val prompt = remember(state.project) { state.compiledPrompt.text }
@@ -86,8 +92,8 @@ fun EditorScreen(
                                     Text(state.module.name, style = MaterialTheme.typography.titleLarge)
                                     when (state.module) {
                                         EditorModule.Style -> StyleEditor(state.project.style)
-                                        EditorModule.Costume -> CostumeEditor(state.project.costume, onCostume)
-                                        EditorModule.Pose -> PoseEditor(state.project.pose, onPose)
+                                        EditorModule.Costume -> CostumeEditor(state.project.costume, onCostume, state.costumeLocks, onCostumeLocks, onRandomizeCostume, onResetCostume)
+                                        EditorModule.Pose -> PoseEditor(state.project.pose, onPose, state.poseLocks, onPoseLocks, onRandomizePose, onResetPose)
                                         EditorModule.Output -> OutputEditor(state.project.output, onOutput)
                                         EditorModule.Prompt -> Unit
                                     }
