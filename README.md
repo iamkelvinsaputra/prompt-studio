@@ -24,7 +24,7 @@ The Android APK is `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
 
 ## Use
 
-- **Style:** the built-in Sumi-e Sky Blue RPG core is locked. The temporary subject is editable here.
+- **Style:** the built-in Sumi-e Sky Blue RPG core is locked. Its full text is collapsed behind **View Style Prompt**. The temporary demo subject stays fixed.
 - **Costume:** select one preset per slot and up to two personal customization markers. For custom garments, select **Not set** for the relevant slot and describe them in custom notes.
 - **Pose:** select one value per category, with free text for leg action, motion direction, and custom notes.
 - **Output:** wallpaper, square, and portrait presets derive their aspect ratios. Custom accepts a ratio or descriptive string such as `3:2` or `widescreen`. Blank ratios disable Copy Prompt until filled.
@@ -43,3 +43,11 @@ The existing three Gradle modules remain: two thin launchers and `shared`.
 - `shared/src/commonTest`: compiler, validation, and editor state tests.
 
 Vocabulary and style wording come from [the character prompt cheatsheet](docs/character_prompt_cheatsheet.md). The V0 component set follows the implementation request; the other character modules are intentionally absent.
+
+## Editor layout and state
+
+`App` owns the shared `EditorViewModel` and collects its `StateFlow` with lifecycle awareness. Section editors receive immutable configurations and focused module callbacks. The prompt is synchronously derived from the project, never stored as separate mutable state.
+
+`EditorScreen` uses available content width: below 840 dp, horizontally scrolling section chips sit above a single editor; at 840 dp, a sidebar appears; at 1240 dp, the live preview appears alongside the editor. Each editor remembers its scroll position when switching sections. The sidebar also scrolls in short windows.
+
+All editors, preview, state, and clipboard feedback live in `commonMain`. Only constructing the clipboard payload needs Android `ClipData` in `androidMain` and AWT `StringSelection` in `jvmMain` (this repository's Desktop source set). Compose's shared `LocalClipboard` performs the write.

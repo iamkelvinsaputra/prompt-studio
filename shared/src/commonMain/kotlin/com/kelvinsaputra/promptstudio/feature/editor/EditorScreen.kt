@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
@@ -20,12 +21,11 @@ import kotlinx.coroutines.launch
 fun EditorScreen(
     state: EditorUiState,
     onModule: (EditorModule) -> Unit,
-    onStyle: (ArtStylePreset) -> Unit,
-    onSubject: (String) -> Unit,
     onCostume: (CostumeConfiguration) -> Unit,
     onPose: (PoseConfiguration) -> Unit,
     onOutput: (OutputConfiguration) -> Unit,
 ) {
+    val sectionState = rememberSaveableStateHolder()
     val prompt = remember(state.project) { state.compiledPrompt.text }
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -51,14 +51,14 @@ fun EditorScreen(
                     }
                 }) { Text("Copy Prompt") }
             }
-            if (!validOutput) Text("Enter a valid aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error)
+            if (!validOutput) Text("Enter an aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error)
             Spacer(Modifier.height(16.dp))
             BoxWithConstraints(Modifier.weight(1f)) {
                 val wide = maxWidth >= 840.dp
                 val showPreview = maxWidth >= 1240.dp && state.module != EditorModule.Prompt
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     if (wide) {
-                        Column(Modifier.width(152.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.width(152.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("COMPONENTS", style = MaterialTheme.typography.labelSmall)
                             EditorModule.entries.forEach { module ->
                                 FilterChip(state.module == module, { onModule(module) }, label = { Text(module.name) }, modifier = Modifier.fillMaxWidth())
@@ -78,19 +78,14 @@ fun EditorScreen(
                         if (state.module == EditorModule.Prompt) {
                             PromptPreview(prompt, Modifier.fillMaxSize())
                         } else {
-                            key(state.module) {
+                            sectionState.SaveableStateProvider(state.module.name) {
                                 Column(
                                     Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Text(state.module.name, style = MaterialTheme.typography.titleLarge)
                                     when (state.module) {
-                                        EditorModule.Style -> {
-                                            ChoiceField("Built-in style", state.project.style, ArtStyles.presets, { it.name }, onStyle)
-                                            Text("Locked style core", style = MaterialTheme.typography.titleSmall)
-                                            Text(state.project.style.prompt, style = MaterialTheme.typography.bodyMedium)
-                                            TextField("Temporary subject", state.project.subject, multiline = true, onChange = onSubject)
-                                        }
+                                        EditorModule.Style -> StyleEditor(state.project.style)
                                         EditorModule.Costume -> CostumeEditor(state.project.costume, onCostume)
                                         EditorModule.Pose -> PoseEditor(state.project.pose, onPose)
                                         EditorModule.Output -> OutputEditor(state.project.output, onOutput)

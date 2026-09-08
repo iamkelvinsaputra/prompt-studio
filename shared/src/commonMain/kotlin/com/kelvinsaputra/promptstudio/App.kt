@@ -15,6 +15,6 @@ fun App() {
     val editor = viewModel { EditorViewModel() }
     val state by editor.state.collectAsStateWithLifecycle()
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF346784), secondary = Color(0xFF526575))) {
-        EditorScreen(state, editor::selectModule, editor::setStyle, editor::setSubject, editor::setCostume, editor::setPose, editor::setOutput)
+        EditorScreen(state, editor::selectModule, editor::setCostume, editor::setPose, editor::setOutput)
     }
 }

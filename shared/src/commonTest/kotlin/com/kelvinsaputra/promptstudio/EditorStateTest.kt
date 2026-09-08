@@ -28,4 +28,21 @@ class EditorStateTest {
         editor.setOutput(editor.state.value.project.output.copy(type = OutputType.CUSTOM))
         assertEquals("7:4", editor.state.value.project.output.aspectRatio)
     }
+
+    @Test fun clearingCostumeFieldAndChangingPosePreserveOtherEdits() {
+        val editor = EditorViewModel()
+        editor.setCostume(editor.state.value.project.costume.copy(footwear = null, customNotes = "Canvas lining"))
+        editor.selectModule(EditorModule.Pose)
+        editor.setPose(editor.state.value.project.pose.copy(energy = Energy.POISED))
+        editor.selectModule(EditorModule.Output)
+        editor.setOutput(editor.state.value.project.output.copy(type = OutputType.DESKTOP))
+        editor.selectModule(EditorModule.Prompt)
+        val state = editor.state.value
+        assertNull(state.project.costume.footwear)
+        assertEquals("Canvas lining", state.project.costume.customNotes)
+        assertEquals(Energy.POISED, state.project.pose.energy)
+        assertFalse(state.compiledPrompt.text.contains("- footwear:"))
+        assertContains(state.compiledPrompt.text, "- overall energy: poised")
+        assertContains(state.compiledPrompt.text, "Create a desktop wallpaper in 16:9.")
+    }
 }

@@ -21,6 +21,7 @@ fun CostumeEditor(value: CostumeConfiguration, onChange: (CostumeConfiguration) 
     OptionField("Handwear", value.handwear, Handwear.entries) { onChange(value.copy(handwear = it)) }
     OptionField("Utility / support", value.utility, Utility.entries) { onChange(value.copy(utility = it)) }
     Text("Personal customization (${value.customization.size}/2)", style = MaterialTheme.typography.titleSmall)
+    Text("Maximum 2. Remove a selection to choose another.", style = MaterialTheme.typography.bodySmall)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Customization.entries.forEach { marker ->
             val selected = marker in value.customization

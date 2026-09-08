@@ -21,8 +21,6 @@ class EditorViewModel : ViewModel() {
     val state = mutableState.asStateFlow()
 
     fun selectModule(module: EditorModule) { mutableState.update { it.copy(module = module) } }
-    fun setStyle(style: ArtStylePreset) = edit { copy(style = style) }
-    fun setSubject(subject: String) = edit { copy(subject = subject) }
     fun setCostume(costume: CostumeConfiguration) = edit { copy(costume = costume) }
     fun setPose(pose: PoseConfiguration) = edit { copy(pose = pose) }
     fun setOutput(output: OutputConfiguration) = edit { copy(output = output) }
