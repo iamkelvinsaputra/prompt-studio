@@ -30,7 +30,7 @@ The Android APK is `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
 - **Output:** wallpaper, square, and portrait presets derive their aspect ratios. Custom accepts a ratio or descriptive string such as `3:2` or `widescreen`. Blank ratios disable Copy Prompt until filled.
 - **Prompt:** selectable live text, available as a dedicated page and alongside the editor in wide windows. **Copy Prompt** copies the complete prompt from any component.
 
-Edits survive Android activity configuration changes through the shared ViewModel. Closing/restarting the app or Android process death resets the project. Local saving and serialization/export are deferred. There is no image generation, backend, or network integration.
+Edits automatically save locally and restore on launch. Locks and selected sections remain session-only. Use **Project → Export Project** for a portable JSON backup and **Project → Import Project** to replace the current project. There is no image generation, backend, or network integration.
 
 ## Code boundaries
 
@@ -39,7 +39,7 @@ The existing three Gradle modules remain: two thin launchers and `shared`.
 - `shared/src/commonMain/.../domain`: immutable configurations, typed preset enums, locked style, slot limits, and output defaults.
 - `shared/src/commonMain/.../prompt`: deterministic section compiler; no Compose dependencies. Empty values are omitted, customization follows catalog order, and the six V0 sections compile in a fixed order: style, output, subject, costume, pose, composition.
 - `shared/src/commonMain/.../feature/editor`: ViewModel with immutable `StateFlow`, lifecycle-aware collection in `App`, adaptive editors, and preview derived from the project. No independently mutable prompt state.
-- `shared/src/commonMain/.../platform`: one `expect` function constructing a text `ClipEntry`. Android uses `ClipData`, Desktop uses AWT `StringSelection`; the actual clipboard write uses Compose `LocalClipboard` in shared UI. These constructors are the only added platform boundary.
+- `shared/src/commonMain/.../platform`: one `expect` function constructing a text `ClipEntry`. Android uses `ClipData`, Desktop uses AWT `StringSelection`; the actual clipboard write uses Compose `LocalClipboard` in shared UI. Native project storage and document pickers are the other small platform boundary.
 - `shared/src/commonTest`: compiler, validation, and editor state tests.
 
 Vocabulary and style wording come from [the character prompt cheatsheet](docs/character_prompt_cheatsheet.md). The V0 component set follows the implementation request; the other character modules are intentionally absent.
@@ -61,3 +61,30 @@ Each module has **Randomize**, **Reset**, **Lock All**, and **Unlock All**. Lock
 `EditorRandomizer` is plain Kotlin editor logic, accepts `kotlin.random.Random`, and chooses only existing vocabulary. Inject `Random(seed)` for repeatable tests. Single-choice fields select a different value when alternatives exist; customization selects a different set of zero, one, or two markers. Pose weight suggestions avoid obvious seated/standing mismatches, but locks and authored notes take precedence, so review their compatibility when exploring.
 
 Locks are typed sets in `EditorUiState`, outside `CharacterProject`. They never enter compiled prompts and last only for the session. The compiler remains unchanged and deterministic.
+
+## Local saving and portable JSON (V0)
+
+The version-1 JSON file directly represents `CharacterProject`:
+
+```json
+{
+  "version": 1,
+  "style": { "id": "sumi-e-sky-blue-rpg", "name": "Sumi-e Sky Blue RPG", "prompt": "..." },
+  "subject": "...",
+  "costume": { "...": "..." },
+  "pose": { "...": "..." },
+  "output": { "...": "..." }
+}
+```
+
+This schematic example abbreviates configuration contents. Actual exports include all default values, authored text, enum selections, and nulls; they contain no locks, navigation, or compiled prompt. `ProjectJson` uses kotlinx.serialization with explicit defaults and pretty printing. Only version 1 is supported; missing sections, wrong types, unknown enum values, and invalid customization counts are rejected. Files are limited to 1 MB.
+
+Autosave happens synchronously at the ViewModel's project-edit boundary, only when the project changes. This deliberately favors simple, immediate durability for a small local file, including closing right after an edit, over a debounce or background-save lifecycle. Native dialogs read/write external files on an I/O dispatcher. There are no writes on recomposition, section changes, or lock changes. If projects become large, autosave scheduling can be revisited.
+
+- **Android:** `noBackupFilesDir/current-project.json`, atomically replaced with `AtomicFile`. This is app-private and excluded from automatic OS backup. OpenDocument/CreateDocument use the system picker without broad storage permissions.
+- **macOS/Desktop:** `~/Library/Application Support/Prompt Studio/current-project.json`. Writes use a temporary file in the same directory, sync its contents, then atomically replace the target. Import/export uses native AWT `FileDialog`.
+- **Shared:** serialization, validation, startup fallback, import state replacement, and save/error decisions live in commonMain. The compiler is unchanged.
+
+A missing save starts with the demo. An unreadable, corrupt, or unsupported save shows a warning and leaves the original file untouched until an explicit edit, valid import, or retry. Failed imports leave the active project and local save untouched. Successful imports preserve current session locks and immediately autosave. Save failure keeps in-memory edits and displays **Retry Save**; export can still provide a backup. Cancelling a picker changes nothing.
+
+Study `ProjectJson.kt`, `ProjectStorage.kt`, `EditorViewModel.kt`, the platform `ProjectFiles` implementations, and `ProjectJsonTest`/`ProjectPersistenceTest`/`DesktopProjectStorageTest` for the complete flow.

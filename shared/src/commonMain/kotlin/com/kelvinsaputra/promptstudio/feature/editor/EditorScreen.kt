@@ -20,6 +20,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun EditorScreen(
     state: EditorUiState,
+    onImport: () -> Unit,
+    onExport: () -> Unit,
+    onDismissMessage: () -> Unit,
+    onRetrySave: () -> Unit,
     onModule: (EditorModule) -> Unit,
     onCostume: (CostumeConfiguration) -> Unit,
     onPose: (PoseConfiguration) -> Unit,
@@ -36,6 +40,13 @@ fun EditorScreen(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    var projectMenu by remember { mutableStateOf(false) }
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            snackbar.showSnackbar(it)
+            onDismissMessage()
+        }
+    }
     val validOutput = state.project.output.aspectRatio != null
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).safeDrawingPadding().imePadding().padding(16.dp)) {
@@ -43,6 +54,13 @@ fun EditorScreen(
                 Column(Modifier.weight(1f)) {
                     Text("Prompt Studio", style = MaterialTheme.typography.headlineSmall)
                     Text("Character prompt builder", style = MaterialTheme.typography.bodySmall)
+                }
+                Box {
+                    TextButton(onClick = { projectMenu = true }) { Text("Project ▾") }
+                    DropdownMenu(projectMenu, onDismissRequest = { projectMenu = false }) {
+                        DropdownMenuItem(text = { Text("Import Project") }, onClick = { projectMenu = false; onImport() })
+                        DropdownMenuItem(text = { Text("Export Project") }, onClick = { projectMenu = false; onExport() })
+                    }
                 }
                 Button(enabled = validOutput, onClick = {
                     scope.launch {
@@ -56,6 +74,10 @@ fun EditorScreen(
                         }
                     }
                 }) { Text("Copy Prompt") }
+            }
+            state.saveError?.let { error ->
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onRetrySave) { Text("Retry Save") }
             }
             if (!validOutput) Text("Enter an aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error)
             Spacer(Modifier.height(16.dp))

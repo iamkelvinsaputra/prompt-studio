@@ -1,7 +1,10 @@
 package com.kelvinsaputra.promptstudio.domain
 
+import kotlinx.serialization.Serializable
+
 interface PromptOption { val wording: String }
 
+@Serializable
 enum class Silhouette(override val wording: String) : PromptOption {
     FITTED("fitted"),
     CROPPED("cropped"),
@@ -13,6 +16,7 @@ enum class Silhouette(override val wording: String) : PromptOption {
     COMPACT_TACTICAL("compact tactical")
 }
 
+@Serializable
 enum class Outerwear(override val wording: String) : PromptOption {
     CROPPED_JACKET("cropped jacket"),
     BOMBER("bomber"),
@@ -24,6 +28,7 @@ enum class Outerwear(override val wording: String) : PromptOption {
     HOODED_SHELL("hooded shell")
 }
 
+@Serializable
 enum class Innerwear(override val wording: String) : PromptOption {
     FITTED_TOP("fitted top"),
     MOCK_NECK("mock neck"),
@@ -34,6 +39,7 @@ enum class Innerwear(override val wording: String) : PromptOption {
     TACTICAL_UNDERSHIRT("tactical undershirt")
 }
 
+@Serializable
 enum class LowerWear(override val wording: String) : PromptOption {
     SHORTS("shorts"),
     SLIM_TROUSERS("slim trousers"),
@@ -44,6 +50,7 @@ enum class LowerWear(override val wording: String) : PromptOption {
     PLEATED_HYBRID_BOTTOM("pleated hybrid bottom")
 }
 
+@Serializable
 enum class Legwear(override val wording: String) : PromptOption {
     UTILITY_TIGHTS("utility tights"),
     STOCKINGS("stockings"),
@@ -52,6 +59,7 @@ enum class Legwear(override val wording: String) : PromptOption {
     COMPRESSION_PANELS("compression panels")
 }
 
+@Serializable
 enum class Footwear(override val wording: String) : PromptOption {
     COMBAT_BOOTS("combat boots"),
     SNEAKERS("sneakers"),
@@ -62,6 +70,7 @@ enum class Footwear(override val wording: String) : PromptOption {
     WORK_BOOTS("work boots")
 }
 
+@Serializable
 enum class Handwear(override val wording: String) : PromptOption {
     FINGERLESS_GLOVES("fingerless gloves"),
     FULL_GLOVES("full gloves"),
@@ -70,6 +79,7 @@ enum class Handwear(override val wording: String) : PromptOption {
     ARM_GUARDS("arm guards")
 }
 
+@Serializable
 enum class Utility(override val wording: String) : PromptOption {
     COMPACT_BELT("compact belt"),
     POUCH_SET("pouch set"),
@@ -79,6 +89,7 @@ enum class Utility(override val wording: String) : PromptOption {
     BUCKLE_SYSTEM("buckle system")
 }
 
+@Serializable
 enum class Customization(override val wording: String) : PromptOption {
     PATCHES("patches"),
     PAINT_MARKS("paint marks"),
@@ -92,6 +103,7 @@ enum class Customization(override val wording: String) : PromptOption {
     TAG("tag")
 }
 
+@Serializable
 enum class BasePose(override val wording: String) : PromptOption {
     RELAXED_STANDING("relaxed standing"),
     ASYMMETRICAL_STANDING("asymmetrical standing"),
@@ -120,6 +132,7 @@ enum class BasePose(override val wording: String) : PromptOption {
     HAND_NEAR_FACE_POSE("hand-near-face pose")
 }
 
+@Serializable
 enum class Weight(override val wording: String) : PromptOption {
     ON_LEFT_LEG("on left leg"),
     ON_RIGHT_LEG("on right leg"),
@@ -128,6 +141,7 @@ enum class Weight(override val wording: String) : PromptOption {
     SUSPENDED_MID_MOTION("suspended mid-motion")
 }
 
+@Serializable
 enum class Torso(override val wording: String) : PromptOption {
     UPRIGHT("upright"),
     SLIGHT_TWIST("slight twist"),
@@ -137,6 +151,7 @@ enum class Torso(override val wording: String) : PromptOption {
     CURVED_SLOUCH("curved slouch")
 }
 
+@Serializable
 enum class Arms(override val wording: String) : PromptOption {
     ONE_HAND_IN_POCKET("one hand in pocket"),
     HAND_NEAR_BELT("hand near belt"),
@@ -147,6 +162,7 @@ enum class Arms(override val wording: String) : PromptOption {
     RELAXED_NATURALLY("relaxed naturally")
 }
 
+@Serializable
 enum class Head(override val wording: String) : PromptOption {
     LEVEL("level"),
     SLIGHT_TILT("slight tilt"),
@@ -156,6 +172,7 @@ enum class Head(override val wording: String) : PromptOption {
     TURNED_BACK("turned back")
 }
 
+@Serializable
 enum class Gaze(override val wording: String) : PromptOption {
     TOWARD_VIEWER("toward viewer"),
     PAST_VIEWER("past viewer"),
@@ -163,6 +180,7 @@ enum class Gaze(override val wording: String) : PromptOption {
     OFF_SCREEN("off-screen")
 }
 
+@Serializable
 enum class Energy(override val wording: String) : PromptOption {
     CALM("calm"),
     COCKY("cocky"),
@@ -173,6 +191,7 @@ enum class Energy(override val wording: String) : PromptOption {
     PLAYFUL("playful")
 }
 
+@Serializable
 enum class Framing(override val wording: String) : PromptOption {
     FULL_BODY("full-body"),
     THREE_QUARTER("3/4"),

@@ -1,5 +1,8 @@
 package com.kelvinsaputra.promptstudio.domain
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CostumeConfiguration(
     val outfitIdentity: String = "altered institutional field uniform with punk personalization",
     val silhouette: Silhouette? = Silhouette.FITTED,
@@ -18,6 +21,7 @@ data class CostumeConfiguration(
     init { require(customization.size <= 2) { "Choose at most two customization markers." } }
 }
 
+@Serializable
 data class PoseConfiguration(
     val basePose: BasePose? = BasePose.ASYMMETRICAL_STANDING,
     val weight: Weight? = Weight.ON_RIGHT_LEG,
@@ -31,6 +35,7 @@ data class PoseConfiguration(
     val customNotes: String = "",
 )
 
+@Serializable
 enum class OutputType(val label: String, val intent: String, val ratio: String?) {
     DESKTOP("Desktop wallpaper", "desktop wallpaper", "16:9"),
     PHONE("Phone wallpaper", "smartphone wallpaper", "9:16"),
@@ -41,6 +46,7 @@ enum class OutputType(val label: String, val intent: String, val ratio: String?)
     val isWallpaper get() = this == DESKTOP || this == PHONE
 }
 
+@Serializable
 data class OutputConfiguration(
     val type: OutputType = OutputType.PHONE,
     val customAspectRatio: String = "3:2",
@@ -56,6 +62,7 @@ data class OutputConfiguration(
     val aspectRatio: String? get() = type.ratio ?: customAspectRatio.trim().takeIf { it.isNotEmpty() }
 }
 
+@Serializable
 data class CharacterProject(
     val version: Int = 1,
     val style: ArtStylePreset = ArtStyles.SumiESkyBlue,

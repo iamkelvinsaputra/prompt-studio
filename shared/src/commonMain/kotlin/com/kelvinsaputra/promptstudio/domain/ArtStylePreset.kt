@@ -1,5 +1,8 @@
 package com.kelvinsaputra.promptstudio.domain
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ArtStylePreset(val id: String, val name: String, val prompt: String)
 
 object ArtStyles {
