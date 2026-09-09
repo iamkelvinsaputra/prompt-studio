@@ -25,10 +25,10 @@ class ProjectJsonTest {
         assertContains(encoded, "TABI_INSPIRED_BOOTS")
     }
 
-    @Test fun defaultProjectIncludesExplicitVersionAndAllSections() {
+    @Test fun defaultProjectIncludesExplicitVersionAndExpandedSections() {
         val root = Json.parseToJsonElement(ProjectJson.encode(CharacterProject())).jsonObject
         assertEquals(JsonPrimitive(1), root["version"])
-        assertEquals(setOf("version", "style", "subject", "costume", "pose", "output"), root.keys)
+        assertTrue(root.keys.containsAll(listOf("version", "id", "name", "style", "subject", "identity", "face", "powerSignature", "costume", "pose", "output", "priorityStack")))
         assertEquals(CharacterProject(), ProjectJson.decode(root.toString()))
     }
 

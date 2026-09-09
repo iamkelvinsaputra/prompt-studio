@@ -6,9 +6,68 @@ import kotlin.random.Random
 // These identify randomizable editor fields, not prompt vocabulary or project data.
 enum class CostumeField { Silhouette, Outerwear, Innerwear, LowerWear, Legwear, Footwear, Handwear, Utility, Customization }
 enum class PoseField { BasePose, Weight, Torso, Arms, Head, Gaze, Energy }
+/** Module-level variation locks. Authored strings are never randomized. */
+enum class VariationField { Identity, Body, Face, Expression, Hair, Costume, Power, Pose, Gaze, Composition, Environment, Lighting, AccentColor, SurfaceTexture, Output }
 
 /** Plain Kotlin session logic. Inject Random(seed) for repeatable exploration. */
 class EditorRandomizer(private val random: Random = Random.Default) {
+    /**
+     * Creates a coherent variation using only finite, in-domain vocabulary. It intentionally
+     * leaves all free-form writing, list ordering, and unmodelled modules untouched.
+     */
+    fun variation(
+        project: CharacterProject,
+        locks: Set<VariationField>,
+        costumeLocks: Set<CostumeField> = emptySet(),
+        poseLocks: Set<PoseField> = emptySet(),
+    ): CharacterProject = project.copy(
+        identity = if (VariationField.Identity in locks) project.identity else project.identity.copy(
+            ageBand = choose(project.identity.ageBand, AgeBand.entries),
+            genderPresentation = choose(project.identity.genderPresentation, GenderPresentation.entries),
+            bodyType = choose(project.identity.bodyType, BodyType.entries),
+        ),
+        body = if (VariationField.Body in locks) project.body else project.body.copy(
+            build = choose(project.body.build, Build.entries),
+            heightImpression = choose(project.body.heightImpression, HeightImpression.entries),
+            athleticLanguage = choose(project.body.athleticLanguage, AthleticLanguage.entries),
+        ),
+        expression = if (VariationField.Expression in locks) project.expression else project.expression.copy(
+            preset = choose(project.expression.preset, ExpressionPreset.entries),
+        ),
+        hair = if (VariationField.Hair in locks) project.hair else project.hair.copy(
+            length = choose(project.hair.length, HairLength.entries),
+            style = choose(project.hair.style, HairStyle.entries),
+        ),
+        costume = if (VariationField.Costume in locks) project.costume else costume(project.costume, costumeLocks),
+        pose = if (VariationField.Pose in locks) project.pose else pose(project.pose, poseLocks),
+        gazeDirection = if (VariationField.Gaze in locks) project.gazeDirection else project.gazeDirection.copy(
+            headDirection = choose(project.gazeDirection.headDirection, Head.entries),
+            gazeTarget = choose(project.gazeDirection.gazeTarget, Gaze.entries),
+            intensity = choose(project.gazeDirection.intensity, GazeIntensity.entries),
+        ),
+        output = if (VariationField.Output in locks) project.output else project.output.copy(
+            // A random custom output could require an authored ratio, so exploration uses the
+            // complete preset set and never makes Copy Prompt invalid.
+            type = choose(project.output.type, OutputType.entries.filter { it != OutputType.CUSTOM }),
+            framing = if (VariationField.Composition in locks) project.output.framing else choose(project.output.framing, Framing.entries),
+        ),
+        environment = if (VariationField.Environment in locks) project.environment else project.environment.copy(
+            abstractionLevel = choose(project.environment.abstractionLevel, EnvironmentAbstraction.entries),
+        ),
+        lighting = if (VariationField.Lighting in locks) project.lighting else project.lighting.copy(
+            sourceQuality = choose(project.lighting.sourceQuality, LightingSource.entries),
+            shadowSoftness = choose(project.lighting.shadowSoftness, ShadowSoftness.entries),
+        ),
+        colorAccents = if (VariationField.AccentColor in locks) project.colorAccents else project.colorAccents.copy(
+            accentColor = choose(project.colorAccents.accentColor, AccentColor.entries),
+        ),
+        surfaceTexture = if (VariationField.SurfaceTexture in locks) project.surfaceTexture else project.surfaceTexture.copy(
+            paperGrain = choose(project.surfaceTexture.paperGrain, TextureLevel.entries),
+            watercolorBehavior = choose(project.surfaceTexture.watercolorBehavior, WatercolorBehavior.entries),
+            inkTextureBehavior = choose(project.surfaceTexture.inkTextureBehavior, InkTextureBehavior.entries),
+        ),
+    )
+
     fun costume(value: CostumeConfiguration, locks: Set<CostumeField>): CostumeConfiguration = value.copy(
         silhouette = if (CostumeField.Silhouette in locks) value.silhouette else choose(value.silhouette, Silhouette.entries),
         outerwear = if (CostumeField.Outerwear in locks) value.outerwear else choose(value.outerwear, Outerwear.entries),

@@ -3,6 +3,7 @@ package com.kelvinsaputra.promptstudio
 import com.kelvinsaputra.promptstudio.domain.*
 import com.kelvinsaputra.promptstudio.feature.editor.EditorViewModel
 import com.kelvinsaputra.promptstudio.persistence.ProjectJson
+import com.kelvinsaputra.promptstudio.persistence.CharacterLibraryJson
 import com.kelvinsaputra.promptstudio.platform.DesktopProjectStorage
 import java.nio.file.Files
 import kotlin.test.*
@@ -18,7 +19,7 @@ class DesktopProjectStorageTest {
             val second = EditorViewModel(storage = DesktopProjectStorage(file))
             assertEquals(first.state.value.project, second.state.value.project)
             assertEquals(first.state.value.compiledPrompt, second.state.value.compiledPrompt)
-            assertEquals(first.state.value.project, ProjectJson.decode(file.readText()))
+            assertEquals(first.state.value.project, CharacterLibraryJson.decode(file.readText()).active)
             assertEquals(listOf("current-project.json"), file.parentFile.listFiles()!!.map { it.name })
         } finally { directory.deleteRecursively() }
     }

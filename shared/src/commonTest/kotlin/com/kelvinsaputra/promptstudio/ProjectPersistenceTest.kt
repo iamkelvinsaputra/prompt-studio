@@ -59,7 +59,7 @@ class ProjectPersistenceTest {
         val imported = CharacterProject(costume = CostumeConfiguration(footwear = Footwear.SANDALS))
         editor.importProject(ProjectJson.encode(imported))
         assertEquals(imported, editor.state.value.project)
-        assertEquals(imported, ProjectJson.decode(storage.text!!))
+        assertEquals(imported, CharacterLibraryJson.decode(storage.text!!).active)
         assertContains(editor.state.value.compiledPrompt.text, "- footwear: sandals")
         assertEquals(setOf(CostumeField.Silhouette), editor.state.value.costumeLocks)
         assertEquals(imported, ProjectJson.decode(editor.exportProject()))
@@ -89,7 +89,7 @@ class ProjectPersistenceTest {
         storage.failWrites = false
         editor.retrySave()
         assertNull(editor.state.value.saveError)
-        assertEquals(editor.state.value.project, ProjectJson.decode(storage.text!!))
+        assertEquals(editor.state.value.project, CharacterLibraryJson.decode(storage.text!!).active)
     }
 
     @Test fun unchangedEditsDoNotWriteAndResetIsSaved() {
@@ -100,6 +100,6 @@ class ProjectPersistenceTest {
         editor.setCostume(CostumeConfiguration(customNotes = "Lining"))
         editor.resetCostume()
         assertEquals(2, storage.writes)
-        assertEquals(CharacterProject(), ProjectJson.decode(storage.text!!))
+        assertEquals(CharacterProject(), CharacterLibraryJson.decode(storage.text!!).active)
     }
 }

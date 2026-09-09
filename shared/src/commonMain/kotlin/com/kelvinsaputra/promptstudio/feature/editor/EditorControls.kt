@@ -35,10 +35,16 @@ fun <T> ChoiceField(label: String, value: T, options: List<T>, wording: (T) -> S
 }
 
 @Composable
-fun TextField(label: String, value: String, multiline: Boolean = false, onChange: (String) -> Unit) {
+fun TextField(
+    label: String,
+    value: String,
+    multiline: Boolean = false,
+    modifier: Modifier = Modifier,
+    onChange: (String) -> Unit,
+) {
     OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(), singleLine = !multiline, minLines = if (multiline) 3 else 1,
+        modifier = modifier.fillMaxWidth(), singleLine = !multiline, minLines = if (multiline) 3 else 1,
     )
 }
 

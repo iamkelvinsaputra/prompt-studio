@@ -5,6 +5,153 @@ import kotlinx.serialization.Serializable
 interface PromptOption { val wording: String }
 
 @Serializable
+enum class AgeBand(override val wording: String) : PromptOption {
+    LATE_TEEN("late-teen"),
+    YOUNG_ADULT("young adult"),
+    ADULT("adult"),
+    MIDDLE_AGED("middle-aged"),
+    MATURE("mature")
+}
+
+@Serializable
+enum class GenderPresentation(override val wording: String) : PromptOption {
+    FEMALE("female"),
+    MALE("male"),
+    ANDROGYNOUS("androgynous"),
+    NONBINARY_PRESENTING("nonbinary-presenting")
+}
+
+@Serializable
+enum class BodyType(override val wording: String) : PromptOption {
+    LEAN("lean"),
+    ATHLETIC("athletic"),
+    STURDY("sturdy"),
+    ELEGANT("elegant"),
+    WIRY("wiry"),
+    MUSCULAR_BUT_CONTROLLED("muscular-but-controlled")
+}
+
+@Serializable
+enum class Build(override val wording: String) : PromptOption {
+    LEAN("lean"),
+    ATHLETIC("athletic"),
+    STURDY("sturdy"),
+    ELEGANT("elegant"),
+    WIRY("wiry"),
+    MUSCULAR_BUT_CONTROLLED("muscular-but-controlled")
+}
+
+@Serializable
+enum class HeightImpression(override val wording: String) : PromptOption {
+    PETITE("petite"),
+    COMPACT("compact"),
+    AVERAGE("average height"),
+    TALL("tall"),
+    STATUESQUE("statuesque")
+}
+
+@Serializable
+enum class AthleticLanguage(override val wording: String) : PromptOption {
+    AGILE("agile"),
+    TRAINED("trained"),
+    DANCER_LIKE("dancer-like"),
+    PRACTICAL("practical"),
+    POWERFUL("powerful"),
+    CONTROLLED("controlled")
+}
+
+@Serializable
+enum class HairLength(override val wording: String) : PromptOption {
+    CROPPED("cropped"),
+    SHORT("short"),
+    SHOULDER_LENGTH("shoulder-length"),
+    LONG("long"),
+    VERY_LONG("very long")
+}
+
+@Serializable
+enum class HairStyle(override val wording: String) : PromptOption {
+    STRAIGHT("straight"),
+    WAVY("wavy"),
+    LOOSELY_TIED("loosely tied"),
+    BRAIDED("braided"),
+    LAYERED("layered"),
+    ASYMMETRICAL("asymmetrical")
+}
+
+@Serializable
+enum class ExpressionPreset(override val wording: String) : PromptOption {
+    CALM("calm"),
+    AMUSED("amused"),
+    COCKY("cocky"),
+    POISED("poised"),
+    PREDATORY("predatory"),
+    PLAYFUL("playful")
+}
+
+@Serializable
+enum class GazeIntensity(override val wording: String) : PromptOption {
+    SOFT("soft"),
+    DIRECT("direct"),
+    CHALLENGING("challenging"),
+    DETACHED("detached"),
+    AMUSED("amused")
+}
+
+@Serializable
+enum class EnvironmentAbstraction(override val wording: String) : PromptOption {
+    MINIMAL("minimal"),
+    ATMOSPHERIC("atmospheric"),
+    LAYERED_ABSTRACT("layered abstract"),
+    FAINT_ARCHITECTURAL("faint architectural"),
+    SILHOUETTE_LED("silhouette-led")
+}
+
+@Serializable
+enum class LightingSource(override val wording: String) : PromptOption {
+    SOFT_DIFFUSE_DAYLIGHT("soft diffuse daylight"),
+    OVERCAST_LIGHT("overcast light"),
+    SOFT_SIDE_LIGHT("soft side light"),
+    DIM_INTERIOR_LIGHT("dim interior light")
+}
+
+@Serializable
+enum class ShadowSoftness(override val wording: String) : PromptOption {
+    VERY_SOFT("very soft"),
+    MODERATE("moderate")
+}
+
+@Serializable
+enum class AccentColor(override val wording: String) : PromptOption {
+    MUTED_WARM_BEIGE("muted warm beige"),
+    DULL_CRIMSON("dull crimson"),
+    MUTED_GOLD("muted gold"),
+    DESATURATED_VIOLET("desaturated violet"),
+    OLIVE_GRAY("olive gray")
+}
+
+@Serializable
+enum class TextureLevel(override val wording: String) : PromptOption {
+    LIGHT("light"),
+    SUBTLE("subtle"),
+    MODERATE("moderate")
+}
+
+@Serializable
+enum class WatercolorBehavior(override val wording: String) : PromptOption {
+    DELICATE_DIFFUSION("delicate watercolor diffusion"),
+    SOFT_BLEED("soft bleed"),
+    SUBTLE_PIGMENT_POOLING("subtle pigment pooling")
+}
+
+@Serializable
+enum class InkTextureBehavior(override val wording: String) : PromptOption {
+    CONTROLLED_DRY_BRUSH("controlled dry-brush texture"),
+    VISIBLE_PRESSURE_VARIATION("visible pressure variation"),
+    IMPERFECT_ENDINGS("imperfect brush endings")
+}
+
+@Serializable
 enum class Silhouette(override val wording: String) : PromptOption {
     FITTED("fitted"),
     CROPPED("cropped"),
@@ -198,4 +345,3 @@ enum class Framing(override val wording: String) : PromptOption {
     THIGH_UP("thigh-up"),
     BUST_UP("bust-up")
 }
-
