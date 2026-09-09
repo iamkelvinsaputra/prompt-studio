@@ -2,6 +2,11 @@ package com.kelvinsaputra.promptstudio
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.*
+import com.kelvinsaputra.promptstudio.credentials.rememberCredentialStore
+import com.kelvinsaputra.promptstudio.generation.network.generationClient
+import com.kelvinsaputra.promptstudio.generation.provider.*
+import com.kelvinsaputra.promptstudio.feature.generation.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -14,6 +19,12 @@ import com.kelvinsaputra.promptstudio.feature.editor.EditorViewModel
 
 @Composable
 fun App() {
+    val credentials = rememberCredentialStore()
+    val selection = remember { GenerationSelection() }
+    val scope = rememberCoroutineScope()
+    val client = remember { generationClient() }
+    val generation = remember { GenerationController(scope, listOf(OpenAiImageGenerationProvider(client), GeminiImageGenerationProvider(client)), credentials) }
+    DisposableEffect(client) { onDispose { generation.cancel(); client.close(); credentials.clearSession() } }
     val storage = rememberProjectStorage()
     val editor = viewModel { EditorViewModel(storage = storage) }
     val files = rememberProjectFileActions(editor::exportProject, editor::importProject, editor::showMessage)
@@ -21,6 +32,7 @@ fun App() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF346784), secondary = Color(0xFF526575))) {
         EditorScreen(
             state = state,
+            generationContent = { GenerationPanel(state.project, generation, credentials, selection, editor::showMessage) },
             onImport = files.importProject,
             onExport = files.exportProject,
             onDismissMessage = editor::dismissMessage,

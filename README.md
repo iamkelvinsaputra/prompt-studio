@@ -2,7 +2,15 @@
 
 Prompt Studio is an offline character-art prompt authoring tool for Android and macOS Desktop. It turns the modular character system in [the character prompt cheatsheet](docs/character_prompt_cheatsheet.md) into a typed local editor and a deterministic live prompt.
 
-V1 supports a local character library, Quick and Advanced editing, complete character components, controlled random variations with session-only locks, portable JSON export/import, autosave, and clipboard copy. It does not generate images, call AI services, or use a backend.
+V1 supports a local character library, Quick and Advanced editing, complete character components, controlled random variations with session-only locks, portable JSON export/import, autosave, and clipboard copy. V2 adds user-triggered OpenAI/Gemini image generation using your own API keys. Editing and persistence still work offline; no Prompt Studio backend is involved.
+
+## V2 image generation
+
+Open **Prompt → Generate Image**, choose a provider/model, enter your API key and press **Use key**, inspect the exact prompt and effective output, then **Generate Current**. You can cancel, save the latest image, or regenerate its captured snapshot. Generation is paid through your provider account and never starts automatically.
+
+Android offers optional Keystore-backed key storage; Desktop keys are session-only. Projects never include credentials. Generated images remain in memory until saved or the session ends.
+
+See [V2 implementation, API references, tests, and limitations](docs/v2-generation.md).
 
 ## Run
 

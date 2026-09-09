@@ -34,11 +34,18 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
         }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+            implementation(libs.compose.ui.test.junit4)
+        }
+        jvmMain.dependencies { implementation(libs.ktor.client.cio) }
         commonMain.dependencies {
+            implementation(libs.ktor.client.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutinesCore)
             implementation(libs.compose.runtime)
@@ -51,6 +58,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
         commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlin.test)
         }
     }

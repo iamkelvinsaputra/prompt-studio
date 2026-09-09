@@ -20,9 +20,10 @@ compose.desktop {
         mainClass = "com.kelvinsaputra.promptstudio.MainKt"
 
         nativeDistributions {
+            modules("jdk.crypto.ec")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.kelvinsaputra.promptstudio"
-            packageVersion = "1.0.0"
+            packageVersion = "2.0.0"
         }
     }
 }

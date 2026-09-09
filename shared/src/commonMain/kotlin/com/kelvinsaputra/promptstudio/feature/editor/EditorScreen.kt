@@ -42,6 +42,7 @@ fun EditorScreen(
     onRenameCharacter: (String) -> Unit,
     onDuplicateCharacter: () -> Unit,
     onDeleteCharacter: () -> Unit,
+    generationContent: @Composable () -> Unit = {},
 ) {
     val sectionState = rememberSaveableStateHolder()
     val prompt = remember(state.project) { state.compiledPrompt.text }
@@ -137,7 +138,7 @@ fun EditorScreen(
                             Spacer(Modifier.height(10.dp))
                         }
                         if (state.module == EditorModule.Prompt) {
-                            PromptPreview(prompt, Modifier.fillMaxSize())
+                            PromptPreview(prompt, Modifier.fillMaxSize(), generationContent)
                         } else {
                             sectionState.SaveableStateProvider(state.module.name) {
                                 Column(
@@ -159,7 +160,7 @@ fun EditorScreen(
                     }
                     if (showPreview) {
                         VerticalDivider()
-                        PromptPreview(prompt, Modifier.weight(1f).fillMaxHeight())
+                        PromptPreview(prompt, Modifier.weight(1f).fillMaxHeight(), generationContent)
                     }
                 }
             }
@@ -275,7 +276,20 @@ private fun NameDialog(initial: String, onDismiss: () -> Unit, onConfirm: (Strin
 }
 
 @Composable
-private fun PromptPreview(prompt: String, modifier: Modifier = Modifier) {
+private fun PromptPreview(prompt: String, modifier: Modifier = Modifier, generationContent: @Composable () -> Unit) {
+    var generate by remember { mutableStateOf(false) }
+    Column(modifier) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(!generate, { generate = false }, label = { Text("Prompt") })
+            FilterChip(generate, { generate = true }, label = { Text("Generate Image") })
+        }
+        if (generate) { generationContent(); return@Column }
+        PromptText(prompt, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun PromptText(prompt: String, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Live prompt", style = MaterialTheme.typography.titleLarge)
         Text("Updates as you edit · ${prompt.length} characters", style = MaterialTheme.typography.bodySmall)
