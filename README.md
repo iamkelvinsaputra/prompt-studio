@@ -1,16 +1,16 @@
 # Prompt Studio
 
-Prompt Studio is an offline character-art prompt authoring tool for Android and macOS Desktop. It turns the modular character system in [the character prompt cheatsheet](docs/character_prompt_cheatsheet.md) into a typed local editor and a deterministic live prompt.
+Prompt Studio is an offline character-art prompt authoring tool for Android, macOS Desktop, iPhone/iPad and Web (Kotlin/Wasm). It turns the modular character system in [the character prompt cheatsheet](docs/character_prompt_cheatsheet.md) into a typed local editor and a deterministic live prompt.
 
 V1 supports a local character library, Quick and Advanced editing, complete character components, controlled random variations with session-only locks, portable JSON export/import, autosave, and clipboard copy. V2 adds user-triggered OpenAI/Gemini image generation using your own API keys. Editing and persistence still work offline; no Prompt Studio backend is involved.
 
-## V2 image generation
+## V2.1 cross-platform generation and history
 
 Open **Prompt → Generate Image**, choose a provider/model, enter your API key and press **Use key**, inspect the exact prompt and effective output, then **Generate Current**. You can cancel, save the latest image, or regenerate its captured snapshot. Generation is paid through your provider account and never starts automatically.
 
-Android offers optional Keystore-backed key storage; Desktop keys are session-only. Projects never include credentials. Generated images remain in memory until saved or the session ends.
+Android offers optional Keystore-backed key storage; Desktop and Apple keys are session-only. Projects never include credentials. Successful native generations persist locally in History with exact configuration/prompt snapshots and separate image artifacts. History supports inspect, save, copy, restore, Generate Again and delete. Web provides complete local authoring and history infrastructure, but intentionally has no provider keys or direct provider generation.
 
-See [V2 implementation, API references, tests, and limitations](docs/v2-generation.md).
+See the [V2.1 implementation and validation report](docs/v2.1-cross-platform-history.md), and the earlier [V2 provider implementation](docs/v2-generation.md).
 
 ## Run
 
@@ -23,8 +23,14 @@ Use JDK 17+ and an Android SDK with API 36 installed.
 # Build an Android debug APK
 ./gradlew :androidApp:assembleDebug
 
-# Run shared tests for both supported targets
+# Run Android/Desktop shared tests
 ./gradlew :shared:jvmTest :shared:testAndroidHostTest
+
+# Run Web locally
+./gradlew :shared:wasmJsBrowserDevelopmentRun
+
+# Apple: open iosApp/PromptStudio.xcodeproj and run the PromptStudio scheme
+# Requires full Xcode and an installed iOS simulator runtime.
 
 # Build everything
 ./gradlew build
@@ -43,13 +49,13 @@ On wide desktop windows, the library, grouped component navigation, editor, and 
 
 ## Architecture
 
-The project still has three Gradle modules: thin Android/Desktop launchers and a shared Kotlin Multiplatform module.
+The project still has three Gradle modules: thin Android/Desktop launchers and a shared Kotlin Multiplatform module, plus a thin Xcode Apple launcher.
 
 - `shared/.../domain` contains immutable project components, bounded collection validation, typed finite vocabulary, the local `CharacterLibrary`, and the locked art style.
 - `shared/.../prompt/PromptCompiler.kt` is a pure deterministic renderer. It owns the canonical cheatsheet order and omits unfilled components.
 - `shared/.../feature/editor` contains shared Compose UI, Quick/Advanced navigation, session-only locks, library state, and plain-Kotlin randomization.
 - `shared/.../persistence` keeps single-character `ProjectJson` portable for import/export. Autosave uses `CharacterLibraryJson`; an existing V0 single-project autosave is read as a one-character library on first launch.
-- `shared/.../platform` is limited to storage, document pickers, and clipboard payload construction.
+- `shared/.../platform` contains small storage, file, clipboard, image and generation capability boundaries.
 
 The project schema intentionally remains version `1`: V1 fields have serialization defaults, so a valid V0 export (style, subject, costume, pose, output) opens without a generic migration system. New V1 exports include character ID/name and all component data; locks, selected module, and compiled prompts are never exported.
 

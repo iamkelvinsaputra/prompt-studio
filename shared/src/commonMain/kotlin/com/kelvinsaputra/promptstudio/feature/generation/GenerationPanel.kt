@@ -90,6 +90,7 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
             GenerationState.Idle -> Text("Your generated image will appear here.")
             GenerationState.Success -> Unit
         }
+        state.historyWarning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         state.latest?.let { image ->
             HorizontalDivider()
             Text("Latest image · ${image.metadata.project.name}", style = MaterialTheme.typography.titleMedium)

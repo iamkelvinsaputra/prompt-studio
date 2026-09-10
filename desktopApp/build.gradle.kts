@@ -23,7 +23,7 @@ compose.desktop {
             modules("jdk.crypto.ec")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.kelvinsaputra.promptstudio"
-            packageVersion = "2.0.0"
+            packageVersion = "2.1.0"
         }
     }
 }

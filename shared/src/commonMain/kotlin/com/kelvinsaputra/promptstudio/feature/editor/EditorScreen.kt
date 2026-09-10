@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
-import com.kelvinsaputra.promptstudio.platform.textClipEntry
+import com.kelvinsaputra.promptstudio.platform.copyPromptText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -73,14 +73,14 @@ fun EditorScreen(
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).safeDrawingPadding().imePadding().padding(16.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.weight(1f)) {
+        Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).safeDrawingPadding().imePadding().padding(16.dp)) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth()) {
                     Text("Prompt Studio", style = MaterialTheme.typography.headlineSmall)
                     Text("Offline character prompt authoring", style = MaterialTheme.typography.bodySmall)
                 }
                 Box {
-                    TextButton(onClick = { characterMenu = true }) { Text("${state.project.name} ▾") }
+                    TextButton(onClick = { characterMenu = true }) { Text("${state.project.name} ▾", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp)) }
                     CharacterMenu(
                         expanded = characterMenu, state = state,
                         onDismiss = { characterMenu = false }, onSelect = { onSelectCharacter(it); characterMenu = false },
@@ -100,7 +100,7 @@ fun EditorScreen(
                 Button(enabled = validOutput, onClick = {
                     scope.launch {
                         try {
-                            clipboard.setClipEntry(textClipEntry(prompt))
+                            clipboard.copyPromptText(prompt)
                             snackbar.showSnackbar("Prompt copied")
                         } catch (e: CancellationException) {
                             throw e
@@ -122,7 +122,7 @@ fun EditorScreen(
             BoxWithConstraints(Modifier.weight(1f)) {
                 val showLibraryPane = maxWidth >= 1080.dp
                 val showModulesPane = maxWidth >= 820.dp
-                val showPreview = maxWidth >= 1450.dp && state.module != EditorModule.Prompt
+                val showPreview = maxWidth >= 1200.dp && state.module != EditorModule.Prompt
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (showLibraryPane) {
                         CharacterLibraryPane(state, onSelectCharacter, onNewCharacter, { renameDialog = true }, onDuplicateCharacter, { deleteDialog = true })
@@ -176,11 +176,14 @@ private fun ModeAndVariationControls(
     onLocks: (Set<VariationField>) -> Unit,
     onRandomize: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(state.mode == EditorMode.Quick, { onMode(EditorMode.Quick) }, label = { Text("Quick") })
         FilterChip(state.mode == EditorMode.Advanced, { onMode(EditorMode.Advanced) }, label = { Text("Advanced") })
         Button(onClick = onRandomize) { Text("Randomize Unlocked") }
     }
+    var showLocks by remember { mutableStateOf(false) }
+    TextButton(onClick = { showLocks = !showLocks }) { Text("${if (showLocks) "Hide" else "Show"} variation locks · ${state.variationLocks.size} locked") }
+    if (!showLocks) return
     Text("Variation locks protect structured character choices; authored text is always preserved.", style = MaterialTheme.typography.bodySmall)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         VariationField.entries.forEach { field ->

@@ -16,12 +16,13 @@ sealed interface GenerationState {
     data class Error(val error: GenerationError) : GenerationState
     data object Cancelled : GenerationState
 }
-data class GenerationUiState(val status: GenerationState = GenerationState.Idle, val latest: GeneratedImage? = null, val attemptedProvider: ImageProviderId? = null)
+data class GenerationUiState(val status: GenerationState = GenerationState.Idle, val latest: GeneratedImage? = null, val attemptedProvider: ImageProviderId? = null, val historyWarning: String? = null)
 /** Main-thread events, owned by the application's structured coroutine scope. */
 class GenerationController(
     private val scope: CoroutineScope,
     private val providers: List<ImageGenerationProvider>,
     private val credentials: CredentialStore,
+    private val saveHistory: suspend (GeneratedImage) -> Unit = {},
 ) {
     private val mutable = MutableStateFlow(GenerationUiState())
     val state = mutable.asStateFlow()
@@ -36,7 +37,11 @@ class GenerationController(
         start(GenerationMetadata(model.provider, request, snapshot, outputFormat = if (model.provider == ImageProviderId.OpenAI) "png" else "provider-selected", quality = if (model.provider == ImageProviderId.OpenAI) "medium" else null))
     }
     fun regenerate() { state.value.latest?.metadata?.let { start(it.copy(requestId = null)) } }
+    fun generateAgain(metadata: GenerationMetadata) = start(metadata.copy(requestId = null))
     private fun start(metadata: GenerationMetadata) {
+        if (ImageModels.all.none { it.id == metadata.request.model && it.provider == metadata.provider && it.supports(metadata.request.output) }) {
+            fail(GenerationError.InvalidRequest); return
+        }
         if (mutable.value.status is GenerationState.Generating) return
         mutable.update { it.copy(attemptedProvider = metadata.provider) }
         val key = try { credentials.get(metadata.provider) } catch (_: Exception) { null }
@@ -48,14 +53,24 @@ class GenerationController(
                 ensureActive()
                 val image = GeneratedImage(result.bytes, result.mimeType, metadata.copy(requestId = result.requestId, outputFormat = result.mimeType.substringAfter('/')))
                 mutable.value = GenerationUiState(GenerationState.Success, image, metadata.provider)
+                // Success is already visible. A storage error must never become a provider error.
+                withContext(NonCancellable) {
+                    try { saveHistory(image) }
+                    catch (_: Exception) {
+                        mutable.update { current -> if (current.latest === image) current.copy(historyWarning =
+                            "Image generated successfully, but could not be saved to history. Save Image to keep a copy.") else current }
+                    }
+                }
             } catch (e: CancellationException) { throw e }
             catch (e: GenerationFailure) { ensureActive(); fail(e.error) }
             catch (_: Exception) { ensureActive(); fail(GenerationError.Unknown) }
         }
     }
     fun cancel() {
-        job?.cancel(); job = null
-        if (mutable.value.status is GenerationState.Generating) mutable.update { it.copy(status = GenerationState.Cancelled) }
+        if (mutable.value.status is GenerationState.Generating) {
+            job?.cancel(); job = null
+            mutable.update { it.copy(status = GenerationState.Cancelled) }
+        }
     }
     private fun fail(error: GenerationError) { mutable.update { it.copy(status = GenerationState.Error(error)) } }
 }

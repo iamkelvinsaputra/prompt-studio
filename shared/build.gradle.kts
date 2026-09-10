@@ -10,6 +10,12 @@ plugins {
 
 kotlin {
     jvm()
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework { baseName = "PromptStudio"; isStatic = true; binaryOption("bundleId", "com.kelvinsaputra.promptstudio.shared") }
+    }
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    wasmJs { browser { testTask { useKarma { useChromeHeadless() } } }; binaries.executable() }
+    applyDefaultHierarchyTemplate()
     
     android {
        namespace = "com.kelvinsaputra.promptstudio.shared"
@@ -33,6 +39,25 @@ kotlin {
     }
     
     sourceSets {
+        val nativeGenerationMain by creating {
+            dependsOn(commonMain.get())
+            dependencies { implementation(libs.ktor.client.core) }
+        }
+        val nativeGenerationTest by creating {
+            dependsOn(commonTest.get())
+            dependencies { implementation(libs.ktor.client.mock) }
+        }
+        val jvmStorageMain by creating { dependsOn(commonMain.get()) }
+        jvmMain.get().dependsOn(jvmStorageMain)
+        androidMain.get().dependsOn(jvmStorageMain)
+        jvmMain.get().dependsOn(nativeGenerationMain)
+        androidMain.get().dependsOn(nativeGenerationMain)
+        iosMain.get().dependsOn(nativeGenerationMain)
+        jvmTest.get().dependsOn(nativeGenerationTest)
+        getByName("androidHostTest").dependsOn(nativeGenerationTest)
+        iosTest.get().dependsOn(nativeGenerationTest)
+        iosMain.dependencies { implementation("io.ktor:ktor-client-darwin:3.4.0") }
+
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
@@ -45,7 +70,6 @@ kotlin {
         }
         jvmMain.dependencies { implementation(libs.ktor.client.cio) }
         commonMain.dependencies {
-            implementation(libs.ktor.client.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutinesCore)
             implementation(libs.compose.runtime)
@@ -58,7 +82,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
         commonTest.dependencies {
-            implementation(libs.ktor.client.mock)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlin.test)
         }

@@ -76,6 +76,8 @@ class EditorViewModel(
         }
     }
 
+    fun restoreConfiguration(snapshot: CharacterProject) = edit { snapshot.copy(id = id, name = name) }
+
     fun setProject(project: CharacterProject) = edit { project.copy(id = id) }
     fun setCostume(costume: CostumeConfiguration) = edit { copy(costume = costume) }
     fun setPose(pose: PoseConfiguration) = edit { copy(pose = pose) }

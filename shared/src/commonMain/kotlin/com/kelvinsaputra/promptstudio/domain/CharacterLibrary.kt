@@ -22,12 +22,8 @@ data class CharacterLibrary(
 
     fun select(id: String): CharacterLibrary = if (characters.any { it.id == id }) copy(activeCharacterId = id) else this
 
-    fun nextId(): String {
-        var candidate = 1
-        val ids = characters.map { it.id }.toSet()
-        while ("character-$candidate" in ids) candidate++
-        return "character-$candidate"
-    }
+    // Never reuse deleted identities: history keeps references after character deletion.
+    fun nextId(): String = kotlin.uuid.Uuid.random().toString()
 
     fun add(project: CharacterProject): CharacterLibrary {
         val added = project.copy(id = nextId())
