@@ -6,7 +6,7 @@ import kotlinx.serialization.json.*
 
 class ProjectFileException(message: String) : IllegalArgumentException(message)
 
-/** Portable single-character import/export format. No editor state or compiled text. */
+/** Portable single-character import/export format. Authored inputs and manual drafts; no transient UI state or cached compilation. */
 object ProjectJson {
     const val VERSION = 1
     const val MAX_BYTES = 1_048_576

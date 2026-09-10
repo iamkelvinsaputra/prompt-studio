@@ -7,6 +7,8 @@ import com.kelvinsaputra.promptstudio.generation.provider.*
 import com.kelvinsaputra.promptstudio.feature.generation.*
 import com.kelvinsaputra.promptstudio.persistence.*
 import com.kelvinsaputra.promptstudio.prompt.PromptCompiler
+import com.kelvinsaputra.promptstudio.prompt.enterManualPrompt
+import com.kelvinsaputra.promptstudio.prompt.editManualPrompt
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
 import kotlinx.serialization.encodeToString
@@ -57,6 +59,17 @@ class GenerationStateTest {
         controller.cancel(); runCurrent()
         assertEquals(GenerationState.Cancelled, controller.state.value.status)
         assertNotNull(controller.state.value.latest)
+    }
+    @Test fun existingGenerationUsesManualOutputAndRejectsEmptyDraft() = runTest {
+        val fake = Fake()
+        val controller = GenerationController(this, listOf(fake), credentials())
+        val project = CharacterProject().enterManualPrompt().editManualPrompt("Exact manual prompt")
+        controller.generateCurrent(project, model); runCurrent()
+        assertEquals("Exact manual prompt", fake.calls.single().prompt)
+        controller.cancel(); runCurrent()
+        controller.generateCurrent(project.editManualPrompt("  "), model); runCurrent()
+        assertEquals(GenerationState.Error(GenerationError.InvalidRequest), controller.state.value.status)
+        assertEquals(1, fake.calls.size)
     }
     @Test fun missingCredentialsAndProviderErrorsPreserveEditor() = runTest {
         val fake = Fake()

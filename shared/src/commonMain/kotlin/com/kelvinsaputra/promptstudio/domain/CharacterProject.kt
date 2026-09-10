@@ -204,6 +204,9 @@ data class PoseConfiguration(
     val energy: Energy? = Energy.COCKY,
     val motionDirection: String = "subtle diagonal tension through the torso",
     val customNotes: String = "",
+    /** Shared silhouette/compiler inputs. Names retained for Phase 1 JSON compatibility. */
+    val guideFacing: GuideFacing = GuideFacing.FRONT,
+    val guideProp: GuideProp = GuideProp.NONE,
 )
 
 @Serializable
@@ -266,6 +269,7 @@ data class CharacterProject(
     val output: OutputConfiguration = OutputConfiguration(),
     val exclusions: List<String> = emptyList(),
     val priorityStack: List<String> = emptyList(),
+    val promptAuthoring: PromptAuthoring = PromptAuthoring(),
 ) {
     init {
         require(id.isNotBlank()) { "Character id cannot be blank." }

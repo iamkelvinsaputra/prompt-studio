@@ -13,6 +13,8 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
+import com.kelvinsaputra.promptstudio.domain.PromptMode
+import com.kelvinsaputra.promptstudio.prompt.useAutomaticPrompt
 import com.kelvinsaputra.promptstudio.platform.copyPromptText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -45,7 +47,7 @@ fun EditorScreen(
     generationContent: @Composable () -> Unit = {},
 ) {
     val sectionState = rememberSaveableStateHolder()
-    val prompt = remember(state.project) { state.compiledPrompt.text }
+    val prompt = remember(state.project) { state.effectivePrompt }
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -56,7 +58,8 @@ fun EditorScreen(
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); onDismissMessage() }
     }
-    val validOutput = state.project.output.aspectRatio != null
+    val manual = state.project.promptAuthoring.mode == PromptMode.Manual
+    val validOutput = manual || state.project.output.aspectRatio != null
     val visibleModules = if (state.mode == EditorMode.Quick) quickModules else EditorModule.entries.filter { it != EditorModule.Prompt }
 
     if (renameDialog) NameDialog(state.project.name, onDismiss = { renameDialog = false }) {
@@ -97,7 +100,7 @@ fun EditorScreen(
                         DropdownMenuItem(text = { Text("Export Character") }, onClick = { projectMenu = false; onExport() })
                     }
                 }
-                Button(enabled = validOutput, onClick = {
+                Button(enabled = validOutput && prompt.isNotBlank(), onClick = {
                     scope.launch {
                         try {
                             clipboard.copyPromptText(prompt)
@@ -115,6 +118,10 @@ fun EditorScreen(
                 TextButton(onClick = onRetrySave) { Text("Retry Save") }
             }
             if (!validOutput) Text("Enter an aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            if (manual) {
+                Text("Manual prompt active · Visual edits update only the automatic draft.", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { onProject(state.project.useAutomaticPrompt()) }) { Text("Use automatic prompt") }
+            }
             Spacer(Modifier.height(12.dp))
             ModeAndVariationControls(state, onMode, onVariationLocks, onRandomizeUnlocked)
             Spacer(Modifier.height(12.dp))
@@ -122,7 +129,7 @@ fun EditorScreen(
             BoxWithConstraints(Modifier.weight(1f)) {
                 val showLibraryPane = maxWidth >= 1080.dp
                 val showModulesPane = maxWidth >= 820.dp
-                val showPreview = maxWidth >= 1200.dp && state.module != EditorModule.Prompt
+                val showPreview = maxWidth >= 1200.dp && state.module != EditorModule.Prompt && state.module != EditorModule.VisualBuild
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (showLibraryPane) {
                         CharacterLibraryPane(state, onSelectCharacter, onNewCharacter, { renameDialog = true }, onDuplicateCharacter, { deleteDialog = true })
@@ -138,7 +145,7 @@ fun EditorScreen(
                             Spacer(Modifier.height(10.dp))
                         }
                         if (state.module == EditorModule.Prompt) {
-                            PromptPreview(prompt, Modifier.fillMaxSize(), generationContent)
+                            PromptPreview(prompt, manual, Modifier.fillMaxSize(), generationContent)
                         } else {
                             sectionState.SaveableStateProvider(state.module.name) {
                                 Column(
@@ -153,14 +160,14 @@ fun EditorScreen(
                                         state.module, state.project, onProject, state.costumeLocks, onCostumeLocks,
                                         state.poseLocks, onPoseLocks, onRandomizeCostume, onRandomizePose, onResetCostume, onResetPose,
                                     )
-                                    TextButton(onClick = { onModule(EditorModule.Prompt) }) { Text("View live prompt →") }
+                                    TextButton(onClick = { onModule(EditorModule.Prompt) }) { Text(if (manual) "Inspect manual prompt →" else "Compiled prompt →") }
                                 }
                             }
                         }
                     }
                     if (showPreview) {
                         VerticalDivider()
-                        PromptPreview(prompt, Modifier.weight(1f).fillMaxHeight(), generationContent)
+                        PromptPreview(prompt, manual, Modifier.weight(1f).fillMaxHeight(), generationContent)
                     }
                 }
             }
@@ -178,7 +185,7 @@ private fun ModeAndVariationControls(
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(state.mode == EditorMode.Quick, { onMode(EditorMode.Quick) }, label = { Text("Quick") })
-        FilterChip(state.mode == EditorMode.Advanced, { onMode(EditorMode.Advanced) }, label = { Text("Advanced") })
+        FilterChip(state.mode == EditorMode.Advanced, { onMode(EditorMode.Advanced) }, label = { Text("All sections") })
         Button(onClick = onRandomize) { Text("Randomize Unlocked") }
     }
     var showLocks by remember { mutableStateOf(false) }
@@ -279,7 +286,7 @@ private fun NameDialog(initial: String, onDismiss: () -> Unit, onConfirm: (Strin
 }
 
 @Composable
-private fun PromptPreview(prompt: String, modifier: Modifier = Modifier, generationContent: @Composable () -> Unit) {
+private fun PromptPreview(prompt: String, manual: Boolean, modifier: Modifier = Modifier, generationContent: @Composable () -> Unit) {
     var generate by remember { mutableStateOf(false) }
     Column(modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -287,15 +294,15 @@ private fun PromptPreview(prompt: String, modifier: Modifier = Modifier, generat
             FilterChip(generate, { generate = true }, label = { Text("Generate Image") })
         }
         if (generate) { generationContent(); return@Column }
-        PromptText(prompt, Modifier.weight(1f))
+        PromptText(prompt, manual, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun PromptText(prompt: String, modifier: Modifier) {
+private fun PromptText(prompt: String, manual: Boolean, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Live prompt", style = MaterialTheme.typography.titleLarge)
-        Text("Updates as you edit · ${prompt.length} characters", style = MaterialTheme.typography.bodySmall)
+        Text(if (manual) "Manual prompt" else "Compiled prompt", style = MaterialTheme.typography.titleLarge)
+        Text("${if (manual) "Your manual text is active" else "Updates from your choices and adjustment"} · ${prompt.length} characters", style = MaterialTheme.typography.bodySmall)
         Surface(Modifier.weight(1f).fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium) {
             SelectionContainer(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
                 Text(prompt, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)

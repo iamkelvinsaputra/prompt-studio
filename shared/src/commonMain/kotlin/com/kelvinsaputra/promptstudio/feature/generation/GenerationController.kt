@@ -5,7 +5,7 @@ import com.kelvinsaputra.promptstudio.domain.CharacterProject
 import com.kelvinsaputra.promptstudio.generation.model.*
 import com.kelvinsaputra.promptstudio.generation.provider.ImageGenerationProvider
 import com.kelvinsaputra.promptstudio.persistence.ProjectJson
-import com.kelvinsaputra.promptstudio.prompt.PromptCompiler
+import com.kelvinsaputra.promptstudio.prompt.effectivePrompt
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
@@ -33,7 +33,8 @@ class GenerationController(
         if (output == null) { fail(GenerationError.InvalidRequest); return }
         // Serialization detaches every nested list/set, including caller-owned mutable collections.
         val snapshot = try { ProjectJson.decode(ProjectJson.encode(project)) } catch (_: Exception) { fail(GenerationError.InvalidRequest); return }
-        val request = ImageGenerationRequest(PromptCompiler().compile(snapshot).text, snapshot.output.aspectRatio!!, model.id, output)
+        val request = ImageGenerationRequest(snapshot.effectivePrompt(), snapshot.output.aspectRatio!!, model.id, output)
+        if (request.prompt.isBlank()) { fail(GenerationError.InvalidRequest); return }
         start(GenerationMetadata(model.provider, request, snapshot, outputFormat = if (model.provider == ImageProviderId.OpenAI) "png" else "provider-selected", quality = if (model.provider == ImageProviderId.OpenAI) "medium" else null))
     }
     fun regenerate() { state.value.latest?.metadata?.let { start(it.copy(requestId = null)) } }

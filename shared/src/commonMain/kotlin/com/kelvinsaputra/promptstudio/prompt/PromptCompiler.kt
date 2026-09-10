@@ -2,7 +2,11 @@ package com.kelvinsaputra.promptstudio.prompt
 
 import com.kelvinsaputra.promptstudio.domain.*
 
-data class CompiledPrompt(val text: String)
+data class PromptSection(val title: String, val body: String)
+
+data class CompiledPrompt(val sections: List<PromptSection>) {
+    val text: String get() = sections.joinToString("\n\n") { "${it.title}\n\n${it.body}" }
+}
 
 /** Pure, deterministic rendering of the modular cheatsheet into readable prompt text. */
 class PromptCompiler {
@@ -24,20 +28,21 @@ class PromptCompiler {
             section("SHAPE LANGUAGE", shapeLanguageBlock(shapeLanguage)),
             section("SUPERNATURAL SIGNATURE", powerBlock(powerSignature)),
             section("PROP / WEAPON / TOOL", propBlock(prop)),
-            section("POSE", poseBlock(pose, gazeDirection.hasContent())),
+            section("POSE", poseBlock(pose, visualAssembly, gazeDirection.hasContent())),
             section("GAZE / HEAD DIRECTION", gazeBlock(gazeDirection)),
-            section("COMPOSITION", composition(output, composition)),
+            section("COMPOSITION", composition(output, composition, visualAssembly)),
             section("ENVIRONMENT / BACKGROUND", environmentBlock(environment)),
             section("LIGHTING", lightingBlock(lighting)),
             section("ACCENT COLOR POLICY", colorAccentBlock(colorAccents)),
             section("SURFACE / TEXTURE", surfaceBlock(surfaceTexture)),
             section("PRIORITY STACK", priorityBlock(priorityStack)),
             section("AVOID", listBullets(exclusions)),
-        ).joinToString("\n\n"))
+            section("DESCRIBE ADJUSTMENT", adjustmentBlock(promptAuthoring.adjustmentText)),
+        ))
     }
 
-    private fun section(title: String, body: String): String? =
-        body.takeIf { it.isNotBlank() }?.let { "$title\n\n$it" }
+    private fun section(title: String, body: String): PromptSection? =
+        body.takeIf { it.isNotBlank() }?.let { PromptSection(title, it) }
 
     private fun subsection(title: String, body: String): String? =
         body.takeIf { it.isNotBlank() }?.let { "$title\n$it" }
@@ -157,9 +162,13 @@ class PromptCompiler {
         additional(value.additionalInstructions),
     ).joinToString("\n")
 
-    private fun poseBlock(p: PoseConfiguration, hasDedicatedGaze: Boolean): String = listOfNotNull(
-        optionBullet("base pose", p.basePose), optionBullet("weight distribution", p.weight), bullet("leg arrangement", p.legAction),
-        optionBullet("torso action", p.torso), optionBullet("arm action", p.arms),
+    private fun poseBlock(p: PoseConfiguration, visual: VisualAssemblyState, hasDedicatedGaze: Boolean): String = listOfNotNull(
+        optionBullet("base pose", visual.basePose), optionBullet("weight distribution", p.weight), bullet("leg arrangement", p.legAction),
+        optionBullet("torso action", p.torso),
+        // A held prop owns arm action in output; the authored choice stays available underneath.
+        optionBullet("arm action", p.arms.takeIf { visual.propPlacement == GuideProp.NONE }),
+        bullet("body orientation", facingWording(visual.facing).takeIf { visual.basePose != null || visual.facing != GuideFacing.FRONT }),
+        bullet("primary prop placement", propPlacementWording(visual.propPlacement).takeIf { visual.basePose != null || visual.propPlacement != GuideProp.NONE }),
         optionBullet("head angle", p.head.takeUnless { hasDedicatedGaze }), optionBullet("gaze", p.gaze.takeUnless { hasDedicatedGaze }),
         optionBullet("overall energy", p.energy), bullet("motion direction", p.motionDirection),
         subsection("Additional pose notes:", p.customNotes.trim()),
@@ -170,8 +179,8 @@ class PromptCompiler {
         optionBullet("intensity", value.intensity), additional(value.additionalInstructions),
     ).joinToString("\n")
 
-    private fun composition(output: OutputConfiguration, value: CompositionConfiguration): String = listOfNotNull(
-        optionBullet("framing", output.framing), bullet("figure placement", output.figurePlacement),
+    private fun composition(output: OutputConfiguration, value: CompositionConfiguration, visual: VisualAssemblyState): String = listOfNotNull(
+        optionBullet("framing", visual.framing), bullet("figure placement", visual.figurePlacement),
         bullet("directional flow", value.directionalFlow), bullet("negative space", output.negativeSpace),
         bullet("detail concentration", value.detailConcentration), bullet("readability priority", value.readabilityPriority),
         bullet("safe area", output.safeArea),
@@ -205,6 +214,22 @@ class PromptCompiler {
 
     private fun priorityBlock(values: List<String>): String = values.mapNotNull(::clean)
         .mapIndexed { index, value -> "${index + 1}. $value" }.joinToString("\n")
+
+    private fun facingWording(value: GuideFacing): String = when (value) {
+        GuideFacing.FRONT -> "body facing the viewer"
+        GuideFacing.THREE_QUARTER -> "body turned three-quarters toward the viewer"
+        GuideFacing.SIDE -> "body in side profile"
+    }
+
+    private fun propPlacementWording(value: GuideProp): String = when (value) {
+        GuideProp.NONE -> "no prop held in the pose"
+        GuideProp.DOWN -> "hold the primary prop down beside the body"
+        GuideProp.SHOULDER -> "rest the primary prop on the shoulder, with one hand supporting it"
+    }
+
+    private fun adjustmentBlock(text: String): String = clean(text)?.let {
+        "Apply this adjustment to the instructions above; where they conflict, this adjustment takes precedence:\n$it"
+    }.orEmpty()
 
     private fun outputIntent(o: OutputConfiguration): String {
         val intent = if (o.type == OutputType.CUSTOM) sentenceContent(o.customIntent).ifEmpty { "illustration" } else o.type.intent

@@ -21,7 +21,7 @@ class CharacterLibraryTest {
         assertEquals(before, editor.state.value.project)
         editor.selectModule(EditorModule.Contradiction)
         editor.setMode(EditorMode.Quick)
-        assertEquals(EditorModule.Output, editor.state.value.module)
+        assertEquals(EditorModule.VisualBuild, editor.state.value.module)
         assertEquals(before, editor.state.value.project)
     }
 

@@ -23,6 +23,7 @@ fun CharacterComponentEditor(
     onResetPose: () -> Unit,
 ) {
     when (module) {
+        EditorModule.VisualBuild -> VisualAssemblyEditor(project, onProject)
         EditorModule.Style -> StyleEditor(project.style)
         EditorModule.Identity -> IdentityEditor(project, { onProject(project.copy(identity = it)) }) { onProject(project.copy(subject = it)) }
         EditorModule.Role -> RoleEditor(project.role) { onProject(project.copy(role = it)) }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.kelvinsaputra.promptstudio.domain.*
 import com.kelvinsaputra.promptstudio.persistence.*
 import com.kelvinsaputra.promptstudio.prompt.PromptCompiler
+import com.kelvinsaputra.promptstudio.prompt.effectivePrompt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -12,6 +13,7 @@ enum class EditorMode { Quick, Advanced }
 
 /** Navigation groups only; prompt ordering remains entirely in PromptCompiler. */
 enum class EditorModule(val title: String, val group: String) {
+    VisualBuild("Visual Build", "SCENE"),
     Style("Style", "STYLE"),
     Identity("Identity", "CHARACTER"),
     Role("Role", "CHARACTER"),
@@ -41,6 +43,7 @@ enum class EditorModule(val title: String, val group: String) {
 }
 
 val quickModules = listOf(
+    EditorModule.VisualBuild,
     EditorModule.Output, EditorModule.Identity, EditorModule.Role, EditorModule.VisualThesis,
     EditorModule.Personality, EditorModule.Face, EditorModule.Hair, EditorModule.Costume,
     EditorModule.Power, EditorModule.Pose, EditorModule.Composition, EditorModule.Lighting,
@@ -49,7 +52,7 @@ val quickModules = listOf(
 
 data class EditorUiState(
     val library: CharacterLibrary = CharacterLibrary(),
-    val module: EditorModule = EditorModule.Costume,
+    val module: EditorModule = EditorModule.VisualBuild,
     val mode: EditorMode = EditorMode.Quick,
     val costumeLocks: Set<CostumeField> = emptySet(),
     val poseLocks: Set<PoseField> = emptySet(),
@@ -59,6 +62,7 @@ data class EditorUiState(
 ) {
     val project: CharacterProject get() = library.active
     val compiledPrompt get() = PromptCompiler().compile(project)
+    val effectivePrompt get() = project.effectivePrompt()
 }
 
 class EditorViewModel(
@@ -116,6 +120,7 @@ class EditorViewModel(
     fun resetCostume() = setCostume(CostumeConfiguration())
     fun resetPose() = setPose(PoseConfiguration())
     fun resetModule(module: EditorModule = state.value.module) = when (module) {
+        EditorModule.VisualBuild -> edit { resetVisualAssembly() }
         EditorModule.Style, EditorModule.Prompt -> Unit
         EditorModule.Identity -> edit { copy(subject = "", identity = IdentityConfiguration()) }
         EditorModule.Role -> edit { copy(role = RoleConfiguration()) }

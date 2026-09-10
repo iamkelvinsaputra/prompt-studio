@@ -17,7 +17,7 @@ import com.kelvinsaputra.promptstudio.credentials.CredentialStore
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
 import com.kelvinsaputra.promptstudio.generation.model.*
 import com.kelvinsaputra.promptstudio.platform.*
-import com.kelvinsaputra.promptstudio.prompt.PromptCompiler
+import com.kelvinsaputra.promptstudio.prompt.effectivePrompt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -71,8 +71,8 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
         if (effective != null && effective.aspectRatio != project.output.aspectRatio)
             Text("Mapped to the nearest supported ratio. The authored prompt stays unchanged.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = { showPrompt = !showPrompt }) { Text(if (showPrompt) "Hide exact prompt" else "Inspect exact prompt to send") }
-        if (showPrompt) SelectionContainer { Text(PromptCompiler().compile(project).text, style = MaterialTheme.typography.bodySmall) }
-        Button(enabled = !busy && effective != null && draftKey.isBlank(), onClick = { controller.generateCurrent(project, model) }) { Text("Generate Current") }
+        if (showPrompt) SelectionContainer { Text(project.effectivePrompt(), style = MaterialTheme.typography.bodySmall) }
+        Button(enabled = !busy && effective != null && draftKey.isBlank() && project.effectivePrompt().isNotBlank(), onClick = { controller.generateCurrent(project, model) }) { Text("Generate Current") }
         when (val status = state.status) {
             is GenerationState.Generating -> {
                 LinearProgressIndicator(Modifier.fillMaxWidth())

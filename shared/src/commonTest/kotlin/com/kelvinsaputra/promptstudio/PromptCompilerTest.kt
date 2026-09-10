@@ -108,6 +108,8 @@ class PromptCompilerTest {
             - leg arrangement: one foot lifted
             - torso action: sharp twist
             - arm action: one arm bracing
+            - body orientation: body facing the viewer
+            - primary prop placement: no prop held in the pose
             - head angle: turned back
             - gaze: past viewer
             - overall energy: evasive
