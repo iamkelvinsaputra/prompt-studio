@@ -45,6 +45,9 @@ fun EditorScreen(
     onDuplicateCharacter: () -> Unit,
     onDeleteCharacter: () -> Unit,
     generationContent: @Composable () -> Unit = {},
+    onProjects: (() -> Unit)? = null,
+    variantContent: @Composable () -> Unit = {},
+    presetContent: @Composable () -> Unit = {},
 ) {
     val sectionState = rememberSaveableStateHolder()
     val prompt = remember(state.project) { state.effectivePrompt }
@@ -55,6 +58,7 @@ fun EditorScreen(
     var characterMenu by remember { mutableStateOf(false) }
     var renameDialog by remember { mutableStateOf(false) }
     var deleteDialog by remember { mutableStateOf(false) }
+    var generating by remember { mutableStateOf(false) }
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); onDismissMessage() }
     }
@@ -69,7 +73,7 @@ fun EditorScreen(
         AlertDialog(
             onDismissRequest = { deleteDialog = false },
             title = { Text("Delete ${state.project.name}?") },
-            text = { Text(if (state.library.characters.size == 1) "A new empty character will replace the final library entry." else "This removes the character from this local library.") },
+            text = { Text("Remove this project and its variants. Saved generations remain in history. The last project is replaced with a blank project.") },
             confirmButton = { TextButton(onClick = { onDeleteCharacter(); deleteDialog = false }) { Text("Delete") } },
             dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancel") } },
         )
@@ -80,8 +84,9 @@ fun EditorScreen(
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.fillMaxWidth()) {
                     Text("Prompt Studio", style = MaterialTheme.typography.headlineSmall)
-                    Text("Offline character prompt authoring", style = MaterialTheme.typography.bodySmall)
+                    Text("Visual prompt authoring", style = MaterialTheme.typography.bodySmall)
                 }
+                onProjects?.let { TextButton(onClick = it) { Text("← Projects") } }
                 Box {
                     TextButton(onClick = { characterMenu = true }) { Text("${state.project.name} ▾", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp)) }
                     CharacterMenu(
@@ -94,7 +99,7 @@ fun EditorScreen(
                     )
                 }
                 Box {
-                    TextButton(onClick = { projectMenu = true }) { Text("Project ▾") }
+                    TextButton(onClick = { projectMenu = true }) { Text("File ▾") }
                     DropdownMenu(projectMenu, onDismissRequest = { projectMenu = false }) {
                         DropdownMenuItem(text = { Text("Import Character") }, onClick = { projectMenu = false; onImport() })
                         DropdownMenuItem(text = { Text("Export Character") }, onClick = { projectMenu = false; onExport() })
@@ -112,7 +117,9 @@ fun EditorScreen(
                         }
                     }
                 }) { Text("Copy") }
+                Button(onClick = { generating = true }) { Text("Generate") }
             }
+            variantContent()
             state.saveError?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = onRetrySave) { Text("Retry Save") }
@@ -123,10 +130,17 @@ fun EditorScreen(
                 TextButton(onClick = { onProject(state.project.useAutomaticPrompt()) }) { Text("Use automatic prompt") }
             }
             Spacer(Modifier.height(12.dp))
-            ModeAndVariationControls(state, onMode, onVariationLocks, onRandomizeUnlocked)
+            if (!generating) ModeAndVariationControls(state, onMode, onVariationLocks, onRandomizeUnlocked)
             Spacer(Modifier.height(12.dp))
 
             BoxWithConstraints(Modifier.weight(1f)) {
+                if (generating) {
+                    Column(Modifier.fillMaxSize()) {
+                        TextButton(onClick = { generating = false }) { Text("← Back to editor") }
+                        generationContent()
+                    }
+                    return@BoxWithConstraints
+                }
                 val showLibraryPane = maxWidth >= 1080.dp
                 val showModulesPane = maxWidth >= 820.dp
                 val showPreview = maxWidth >= 1200.dp && state.module != EditorModule.Prompt && state.module != EditorModule.VisualBuild
@@ -160,6 +174,7 @@ fun EditorScreen(
                                         state.module, state.project, onProject, state.costumeLocks, onCostumeLocks,
                                         state.poseLocks, onPoseLocks, onRandomizeCostume, onRandomizePose, onResetCostume, onResetPose,
                                     )
+                                    if (state.module == EditorModule.VisualBuild) presetContent()
                                     TextButton(onClick = { onModule(EditorModule.Prompt) }) { Text(if (manual) "Inspect manual prompt →" else "Compiled prompt →") }
                                 }
                             }
@@ -186,8 +201,9 @@ private fun ModeAndVariationControls(
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(state.mode == EditorMode.Quick, { onMode(EditorMode.Quick) }, label = { Text("Quick") })
         FilterChip(state.mode == EditorMode.Advanced, { onMode(EditorMode.Advanced) }, label = { Text("All sections") })
-        Button(onClick = onRandomize) { Text("Randomize Unlocked") }
+        if (state.mode == EditorMode.Advanced) Button(onClick = onRandomize) { Text("Randomize Unlocked") }
     }
+    if (state.mode != EditorMode.Advanced) return
     var showLocks by remember { mutableStateOf(false) }
     TextButton(onClick = { showLocks = !showLocks }) { Text("${if (showLocks) "Hide" else "Show"} variation locks · ${state.variationLocks.size} locked") }
     if (!showLocks) return
@@ -250,10 +266,10 @@ private fun CharacterMenu(
             DropdownMenuItem(text = { Text(if (character.id == state.library.activeCharacterId) "✓ ${character.name}" else character.name) }, onClick = { onSelect(character.id) })
         }
         HorizontalDivider()
-        DropdownMenuItem(text = { Text("New Character") }, onClick = onNew)
-        DropdownMenuItem(text = { Text("Rename Character") }, onClick = onRename)
-        DropdownMenuItem(text = { Text("Duplicate Character") }, onClick = onDuplicate)
-        DropdownMenuItem(text = { Text("Delete Character") }, onClick = onDelete)
+        DropdownMenuItem(text = { Text("New Project") }, onClick = onNew)
+        DropdownMenuItem(text = { Text("Rename Project") }, onClick = onRename)
+        DropdownMenuItem(text = { Text("Duplicate Project") }, onClick = onDuplicate)
+        DropdownMenuItem(text = { Text("Delete Project") }, onClick = onDelete)
     }
 }
 
@@ -263,7 +279,7 @@ private fun CharacterLibraryPane(
     onDuplicate: () -> Unit, onDelete: () -> Unit,
 ) {
     Column(Modifier.width(180.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("CHARACTERS", style = MaterialTheme.typography.labelSmall)
+        Text("PROJECTS", style = MaterialTheme.typography.labelSmall)
         state.library.characters.forEach { character ->
             FilterChip(character.id == state.library.activeCharacterId, { onSelect(character.id) }, label = { Text(character.name) }, modifier = Modifier.fillMaxWidth())
         }
@@ -278,8 +294,8 @@ private fun CharacterLibraryPane(
 private fun NameDialog(initial: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var name by remember(initial) { mutableStateOf(initial) }
     AlertDialog(
-        onDismissRequest = onDismiss, title = { Text("Rename Character") },
-        text = { OutlinedTextField(name, { name = it }, label = { Text("Character name") }, singleLine = true) },
+        onDismissRequest = onDismiss, title = { Text("Rename Project") },
+        text = { OutlinedTextField(name, { name = it }, label = { Text("Project name") }, singleLine = true) },
         confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

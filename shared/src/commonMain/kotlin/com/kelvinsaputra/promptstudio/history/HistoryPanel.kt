@@ -23,7 +23,7 @@ import kotlinx.coroutines.*
 
 @Composable
 fun GenerationAndHistory(project: CharacterProject, generation: GenerationController, credentials: CredentialStore,
-    selection: GenerationSelection, history: HistoryController, restore: (CharacterProject) -> Unit, message: (String) -> Unit) {
+    selection: GenerationSelection, history: HistoryController, restore: (CharacterProject) -> Unit, message: (String) -> Unit, variant: GenerationVariant? = null) {
     var showHistory by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -31,7 +31,7 @@ fun GenerationAndHistory(project: CharacterProject, generation: GenerationContro
             FilterChip(showHistory, { showHistory = true }, label = { Text("History") })
         }
         if (showHistory) HistoryPanel(project, history, generation, restore, message)
-        else if (platformCapabilities.canGenerateWithByok) GenerationPanel(project, generation, credentials, selection, message)
+        else if (platformCapabilities.canGenerateWithByok) GenerationPanel(project, generation, credentials, selection, message, variant)
         else Text("Cloud image generation is unavailable in the web build.\n\nPrompt Studio does not send provider API keys directly from the browser. Use the native app for BYOK generation.")
     }
 }
@@ -43,8 +43,8 @@ private fun HistoryPanel(project: CharacterProject, history: HistoryController, 
     val state by history.state.collectAsState()
     val generationState by generation.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableStateOf<GenerationRecord?>(null) }
-    var currentOnly by remember { mutableStateOf(false) }
+    var selected by remember(project.id) { mutableStateOf<GenerationRecord?>(null) }
+    var currentOnly by remember { mutableStateOf(true) }
     var confirm by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboard.current
     val saver = rememberImageSaver(message)
@@ -53,7 +53,7 @@ private fun HistoryPanel(project: CharacterProject, history: HistoryController, 
         Column {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(!currentOnly, { currentOnly = false }, label = { Text("All Generations") })
-                FilterChip(currentOnly, { currentOnly = true }, label = { Text("Current Character") })
+                FilterChip(currentOnly, { currentOnly = true }, label = { Text("Current Project") })
                 TextButton(onClick = { scope.launch { history.refresh() } }) { Text("Refresh") }
             }
             state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -68,6 +68,7 @@ private fun HistoryPanel(project: CharacterProject, history: HistoryController, 
                             HistoryImage(history, entry, thumbnail = true, Modifier.size(72.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(entry.metadata.project.name, style = MaterialTheme.typography.titleSmall)
+                                entry.metadata.variant?.let { Text(it.name, style = MaterialTheme.typography.bodySmall) }
                                 Text("${entry.metadata.provider} · ${entry.metadata.request.model}", style = MaterialTheme.typography.bodySmall)
                                 Text(entry.timeLabel, style = MaterialTheme.typography.bodySmall)
                             }
@@ -82,6 +83,8 @@ private fun HistoryPanel(project: CharacterProject, history: HistoryController, 
             TextButton(onClick = { selected = null }) { Text("← All history") }
             state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Text(record.metadata.project.name, style = MaterialTheme.typography.titleLarge)
+            Text("Variant: ${record.metadata.variant?.name ?: "Original (legacy)"}")
+            Text(if (record.metadata.request.guideSpec != null) "Visual guide used" else "Text-only generation")
             Text("Character ID: ${record.metadata.project.id}\n${record.timeLabel}\n${record.metadata.provider} · ${record.metadata.request.model}")
             HistoryImage(history, record, false, Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 520.dp))
             Text("Requested ${record.metadata.request.requestedAspectRatio} → ${record.metadata.request.output.aspectRatio} · ${record.metadata.request.output.size}\n${record.mimeType}${record.metadata.quality?.let { " · $it quality" }.orEmpty()}")
@@ -106,12 +109,12 @@ private fun HistoryPanel(project: CharacterProject, history: HistoryController, 
             }
             if (!supported) Text("This historical model/output is no longer supported. Generate Again is unavailable; no replacement has been selected.")
             generationState.status.let { if (it is GenerationState.Error) Text(it.error.message, color = MaterialTheme.colorScheme.error) }
-            Text("Compiled prompt snapshot", style = MaterialTheme.typography.titleMedium)
+            Text("Effective prompt snapshot", style = MaterialTheme.typography.titleMedium)
             SelectionContainer { Text(record.metadata.request.prompt) }
         }
         if (confirm != null) AlertDialog(onDismissRequest = { confirm = null },
             title = { Text(if (confirm == "restore") "Restore into ${project.name}?" else "Delete generation?") },
-            text = { Text(if (confirm == "restore") "Replace this character’s configuration with the saved snapshot. Its current name and library identity will be preserved." else "Delete this history record and its local image. The character library is unchanged.") },
+            text = { Text(if (confirm == "restore") "Replace shared character settings and the active variant’s scene and prompt with this snapshot. Other variants keep their scenes. Project name and identity are preserved; provider preferences stay unchanged." else "Delete this history record and its local image. Projects are unchanged.") },
             confirmButton = { TextButton(onClick = {
                 if (confirm == "restore") { restore(record.metadata.project); message("Configuration restored") }
                 else scope.launch { history.delete(record); if (history.state.value.records.none { it.id == record.id }) selected = null }

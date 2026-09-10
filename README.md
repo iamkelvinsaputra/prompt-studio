@@ -12,6 +12,12 @@ Android offers optional Keystore-backed key storage; Desktop and Apple keys are 
 
 See the [V2.1 implementation and validation report](docs/v2.1-cross-platform-history.md), and the earlier [V2 provider implementation](docs/v2-generation.md).
 
+## V2 visual workflow and productization
+
+Open a recent project or create one, choose a visual pose, and use **Generate** in the editor header. Projects support independent output variants with shared character/style/costume, persisted manual/adjustment state and provider/guide preferences. Save pose or composition cards to reuse across projects. History preserves each generation's exact prompt, variant and optional visual guide.
+
+See the [Phase 4 architecture, migration and validation report](docs/productization-phase4.md). Portable Character JSON still exports the active variant only; local autosave preserves the complete project library and presets.
+
 ## Run
 
 Use JDK 17+ and an Android SDK with API 36 installed.

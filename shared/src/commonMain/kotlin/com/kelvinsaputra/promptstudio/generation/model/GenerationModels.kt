@@ -79,7 +79,8 @@ object ImageModels {
     val guideSpec: GuideRenderSpec? = null,
     @Transient val referenceGuide: GuideImage? = null,
 )
-@Serializable data class GenerationMetadata(val provider: ImageProviderId, val request: ImageGenerationRequest, val project: CharacterProject, val requestId: String? = null, val outputFormat: String, val quality: String? = null)
+@Serializable data class GenerationVariant(val id: String, val name: String)
+@Serializable data class GenerationMetadata(val provider: ImageProviderId, val request: ImageGenerationRequest, val project: CharacterProject, val requestId: String? = null, val outputFormat: String, val quality: String? = null, val variant: GenerationVariant? = null)
 /** Byte ownership transfers to the session; identity equality avoids ByteArray data-class surprises. */
 class GeneratedImage(val bytes: ByteArray, val mimeType: String, val metadata: GenerationMetadata)
 class ProviderImage(val bytes: ByteArray, val mimeType: String, val requestId: String? = null)

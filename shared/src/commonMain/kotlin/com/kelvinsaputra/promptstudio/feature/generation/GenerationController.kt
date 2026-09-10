@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.*
 
 sealed interface GenerationState {
     data object Idle : GenerationState
-    data class Generating(val metadata: GenerationMetadata) : GenerationState
+    data class Generating(val metadata: GenerationMetadata, val preparingGuide: Boolean = false) : GenerationState
     data object Success : GenerationState
     data class Error(val error: GenerationError) : GenerationState
     data object Cancelled : GenerationState
@@ -33,7 +33,7 @@ class GenerationController(
     fun supportsVisualGuide(model: ImageModelDefinition): Boolean =
         model.supportsVisualGuide && providers.any { it.id == model.provider && it.supportsVisualGuide }
 
-    fun generateCurrent(project: CharacterProject, model: ImageModelDefinition, useVisualGuide: Boolean = false) {
+    fun generateCurrent(project: CharacterProject, model: ImageModelDefinition, useVisualGuide: Boolean = false, variant: GenerationVariant? = null) {
         if (mutable.value.status is GenerationState.Generating) return
         val output = model.outputFor(project.output.aspectRatio)
         if (output == null) { fail(GenerationError.InvalidRequest); return }
@@ -46,7 +46,7 @@ class GenerationController(
         } else null
         val request = ImageGenerationRequest(snapshot.effectivePrompt(), snapshot.output.aspectRatio!!, model.id, output, guideSpec)
         if (request.prompt.isBlank()) { fail(GenerationError.InvalidRequest); return }
-        start(GenerationMetadata(model.provider, request, snapshot, outputFormat = if (model.provider == ImageProviderId.OpenAI) "png" else "provider-selected", quality = if (model.provider == ImageProviderId.OpenAI) "medium" else null))
+        start(GenerationMetadata(model.provider, request, snapshot, outputFormat = if (model.provider == ImageProviderId.OpenAI) "png" else "provider-selected", quality = if (model.provider == ImageProviderId.OpenAI) "medium" else null, variant = variant))
     }
     fun regenerate() { state.value.latest?.metadata?.let { start(it.copy(requestId = null)) } }
     fun generateAgain(metadata: GenerationMetadata) = start(metadata.copy(requestId = null))
@@ -63,7 +63,7 @@ class GenerationController(
         mutable.update { it.copy(attemptedProvider = metadata.provider) }
         val key = try { credentials.get(metadata.provider) } catch (_: Exception) { null }
         if (key == null) { fail(GenerationError.MissingCredentials); return }
-        mutable.update { it.copy(status = GenerationState.Generating(metadata)) }
+        mutable.update { it.copy(status = GenerationState.Generating(metadata, preparingGuide = metadata.request.guideSpec != null)) }
         job = scope.launch {
             try {
                 val guide = metadata.request.guideSpec?.let { spec ->
@@ -72,6 +72,7 @@ class GenerationController(
                     catch (_: Exception) { throw GenerationFailure(GenerationError.GuidePreparation) }
                 }
                 ensureActive()
+                mutable.update { it.copy(status = GenerationState.Generating(metadata)) }
                 val result = provider.generate(metadata.request.copy(referenceGuide = guide), key)
                 ensureActive()
                 val image = GeneratedImage(result.bytes, result.mimeType, metadata.copy(requestId = result.requestId, outputFormat = result.mimeType.substringAfter('/')))

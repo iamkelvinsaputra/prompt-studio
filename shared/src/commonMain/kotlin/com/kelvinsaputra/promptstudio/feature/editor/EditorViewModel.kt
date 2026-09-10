@@ -92,6 +92,29 @@ class EditorViewModel(
     fun setVariationLocks(locks: Set<VariationField>) { mutableState.update { it.copy(variationLocks = locks.toSet()) } }
 
     fun selectCharacter(id: String) = changeLibrary(state.value.library.select(id))
+    fun selectVariant(id: String) = changeLibrary(state.value.library.selectVariant(id))
+    fun addVariant(name: String, type: OutputType) = changeLibrary(state.value.library.addVariant(name, type))
+    fun renameVariant(name: String) = changeLibrary(state.value.library.renameVariant(name))
+    fun deleteVariant() = changeLibrary(state.value.library.deleteVariant())
+    fun setGeneration(value: GenerationPreferences) = changeLibrary(state.value.library.setGeneration(value))
+    fun savePreset(name: String, composition: Boolean) {
+        if (name.isBlank()) return
+        val library = state.value.library
+        val value = if (composition) VisualPresetValue.Composition.capture(library.active) else VisualPresetValue.Pose(library.active.pose)
+        changeLibrary(library.copy(presets = listOf(SavedVisualPreset(library.nextId(), name.trim(), value)) + library.presets))
+    }
+    fun applyPreset(id: String) {
+        val library = state.value.library
+        val preset = library.presets.firstOrNull { it.id == id } ?: return
+        changeLibrary(library.replaceActive(preset.value.applyTo(library.active)).copy(presets = listOf(preset) + library.presets.filterNot { it.id == id }))
+    }
+    fun deletePreset(id: String) = changeLibrary(state.value.library.copy(presets = state.value.library.presets.filterNot { it.id == id }))
+    fun createProject(name: String, type: OutputType) {
+        if (name.isBlank()) return
+        val project = CharacterLibrary.newCharacter(state.value.library.nextId(), name.trim()).resetVisualAssembly()
+        val library = state.value.library.add(project.copy(output = project.output.copy(type = type)))
+        changeLibrary(library.withVariants(library.activeVariants.copy(primaryName = type.name.lowercase().replaceFirstChar { it.uppercase() })))
+    }
     fun newCharacter() = changeLibrary(state.value.library.add(CharacterLibrary.newCharacter(state.value.library.nextId())))
     fun renameCharacter(name: String) {
         val cleaned = name.trim()
@@ -168,7 +191,7 @@ class EditorViewModel(
         val library = when {
             saved == null -> CharacterLibrary()
             else -> runCatching { CharacterLibraryJson.decode(saved) }
-                .getOrElse { CharacterLibrary(characters = listOf(ProjectJson.decode(saved))) }
+                .getOrElse { ProjectJson.decode(saved).let { CharacterLibrary(it.id, listOf(it)) } }
         }
         EditorUiState(library = library)
     } catch (_: Exception) {
@@ -182,7 +205,7 @@ class EditorViewModel(
             storage.write(CharacterLibraryJson.encode(library))
             mutableState.update { it.copy(saveError = null) }
         } catch (_: Exception) {
-            mutableState.update { it.copy(saveError = "Changes are not saved locally. Export a backup or retry saving.") }
+            mutableState.update { it.copy(saveError = "Changes are not saved locally. Retry saving; Export Character can keep the active variant.") }
         }
     }
 

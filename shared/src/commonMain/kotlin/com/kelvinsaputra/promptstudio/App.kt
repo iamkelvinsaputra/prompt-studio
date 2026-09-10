@@ -17,11 +17,14 @@ import com.kelvinsaputra.promptstudio.platform.rememberProjectStorage
 import com.kelvinsaputra.promptstudio.platform.rememberProjectFileActions
 import com.kelvinsaputra.promptstudio.feature.editor.EditorScreen
 import com.kelvinsaputra.promptstudio.feature.editor.EditorViewModel
+import com.kelvinsaputra.promptstudio.feature.editor.ProjectsScreen
+import com.kelvinsaputra.promptstudio.feature.editor.VariantBar
+import com.kelvinsaputra.promptstudio.feature.editor.PresetLibrary
+import com.kelvinsaputra.promptstudio.generation.model.GenerationVariant
 
 @Composable
 fun App() {
     val credentials = rememberCredentialStore()
-    val selection = remember { GenerationSelection() }
     val scope = rememberCoroutineScope()
     val backend = rememberGenerationBackend()
     val historyStore = rememberGenerationHistoryStore()
@@ -33,10 +36,20 @@ fun App() {
     val editor = viewModel { EditorViewModel(storage = storage) }
     val files = rememberProjectFileActions(editor::exportProject, editor::importProject, editor::showMessage)
     val state by editor.state.collectAsStateWithLifecycle()
+    var projects by remember { mutableStateOf(true) }
+    val variants = state.library.activeVariants
+    val selection = remember(state.project.id, variants.activeId, variants.generation) { GenerationSelection(variants.generation, editor::setGeneration) }
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF346784), secondary = Color(0xFF526575))) {
+        if (projects) {
+            ProjectsScreen(state, editor) { projects = false; editor.selectModule(com.kelvinsaputra.promptstudio.feature.editor.EditorModule.VisualBuild) }
+            return@MaterialTheme
+        }
         EditorScreen(
             state = state,
-            generationContent = { GenerationAndHistory(state.project, generation, credentials, selection, history, editor::restoreConfiguration, editor::showMessage) },
+            onProjects = { projects = true },
+            variantContent = { VariantBar(state, editor) },
+            presetContent = { PresetLibrary(state, editor) },
+            generationContent = { GenerationAndHistory(state.project, generation, credentials, selection, history, editor::restoreConfiguration, editor::showMessage, GenerationVariant(variants.activeId, variants.activeName)) },
             onImport = files.importProject,
             onExport = files.exportProject,
             onDismissMessage = editor::dismissMessage,
@@ -54,7 +67,7 @@ fun App() {
             onResetPose = editor::resetPose,
             onResetModule = editor::resetModule,
             onSelectCharacter = editor::selectCharacter,
-            onNewCharacter = editor::newCharacter,
+            onNewCharacter = { editor.createProject("New Project", com.kelvinsaputra.promptstudio.domain.OutputType.PHONE) },
             onRenameCharacter = editor::renameCharacter,
             onDuplicateCharacter = editor::duplicateCharacter,
             onDeleteCharacter = editor::deleteCharacter,
