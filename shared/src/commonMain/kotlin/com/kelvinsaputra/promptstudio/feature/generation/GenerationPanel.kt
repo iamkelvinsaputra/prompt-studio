@@ -9,12 +9,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.credentials.CredentialStore
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
+import com.kelvinsaputra.promptstudio.domain.visualAssembly
+import com.kelvinsaputra.promptstudio.guide.GuideRenderSpec
 import com.kelvinsaputra.promptstudio.generation.model.*
 import com.kelvinsaputra.promptstudio.platform.*
 import com.kelvinsaputra.promptstudio.prompt.effectivePrompt
@@ -24,6 +28,7 @@ import kotlinx.coroutines.withContext
 class GenerationSelection {
     var provider by mutableStateOf(ImageProviderId.OpenAI)
     var model by mutableStateOf(ImageModels.default(provider))
+    var useVisualGuide by mutableStateOf(true)
     fun select(id: ImageProviderId) { provider = id; model = ImageModels.default(id) }
 }
 
@@ -40,6 +45,9 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
     val saver = rememberImageSaver(onMessage)
     val busy = state.status is GenerationState.Generating
     val effective = model.outputFor(project.output.aspectRatio)
+    val guideSupported = controller.supportsVisualGuide(model)
+    val guideAvailable = GuideRenderSpec.from(project.visualAssembly, project.output.aspectRatio) != null
+    val useGuide = selection.useVisualGuide && guideSupported && guideAvailable
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Generate Image", style = MaterialTheme.typography.titleLarge)
         Text("Your provider account pays for each request · 1 image")
@@ -72,7 +80,18 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
             Text("Mapped to the nearest supported ratio. The authored prompt stays unchanged.", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = { showPrompt = !showPrompt }) { Text(if (showPrompt) "Hide exact prompt" else "Inspect exact prompt to send") }
         if (showPrompt) SelectionContainer { Text(project.effectivePrompt(), style = MaterialTheme.typography.bodySmall) }
-        Button(enabled = !busy && effective != null && draftKey.isBlank() && project.effectivePrompt().isNotBlank(), onClick = { controller.generateCurrent(project, model) }) { Text("Generate Current") }
+        Row {
+            Checkbox(checked = useGuide, enabled = guideSupported && guideAvailable && !busy, onCheckedChange = { selection.useVisualGuide = it },
+                modifier = Modifier.semantics { contentDescription = "Use visual guide" })
+            Text("Use visual guide", Modifier.padding(top = 12.dp))
+        }
+        Text(when {
+            !guideSupported -> "Visual guides are unavailable for this provider. Generation uses text only."
+            !guideAvailable -> "Choose a supported pose, framing and placement in Visual Build to use a guide. Generation uses text only."
+            useGuide -> "Use the composition in Visual Build as a guide. The result may vary; text adjustments do not change the guide."
+            else -> "Generation uses text only."
+        }, style = MaterialTheme.typography.bodySmall)
+        Button(enabled = !busy && effective != null && draftKey.isBlank() && project.effectivePrompt().isNotBlank(), onClick = { controller.generateCurrent(project, model, useGuide) }) { Text("Generate Current") }
         when (val status = state.status) {
             is GenerationState.Generating -> {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -84,7 +103,7 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
             is GenerationState.Error -> {
                 state.attemptedProvider?.let { Text("Request to $it failed", style = MaterialTheme.typography.labelLarge) }
                 Text(status.error.message, color = MaterialTheme.colorScheme.error)
-                TextButton(enabled = effective != null && draftKey.isBlank(), onClick = { controller.generateCurrent(project, model) }) { Text("Try Again · current character") }
+                TextButton(enabled = effective != null && draftKey.isBlank() && project.effectivePrompt().isNotBlank(), onClick = { controller.generateCurrent(project, model, useGuide) }) { Text("Try Again · current character") }
             }
             GenerationState.Cancelled -> Text("Cancelled locally. The provider may already have processed or charged for the request.")
             GenerationState.Idle -> Text("Your generated image will appear here.")
@@ -109,7 +128,8 @@ fun GenerationPanel(project: CharacterProject, controller: GenerationController,
                 Button(onClick = { saver(image) }) { Text("Save Image") }
                 OutlinedButton(enabled = !busy, onClick = controller::regenerate) { Text("Regenerate") }
             }
-            Text("Regenerate uses this image’s previous character, provider and settings · new paid request.", style = MaterialTheme.typography.bodySmall)
+            Text("Regenerate uses this image’s previous character, provider and settings, including its visual guide · new paid request.", style = MaterialTheme.typography.bodySmall)
+            Text(if (image.metadata.request.guideSpec != null) "Visual guide used" else "Text-only generation", style = MaterialTheme.typography.bodySmall)
             Text("${image.metadata.provider} · ${image.metadata.request.model}\nRequested ${image.metadata.request.requestedAspectRatio} → ${image.metadata.request.output.aspectRatio} · ${image.metadata.request.output.size}\n${image.mimeType}${image.metadata.quality?.let { " · $it quality" }.orEmpty()}")
             image.metadata.requestId?.let { Text("Request ID: $it", style = MaterialTheme.typography.bodySmall) }
             TextButton(onClick = { showMetadata = !showMetadata }) { Text("Captured prompt and character snapshot") }

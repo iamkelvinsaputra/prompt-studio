@@ -4,6 +4,7 @@ import com.kelvinsaputra.promptstudio.credentials.ProviderCredentials
 import com.kelvinsaputra.promptstudio.generation.model.*
 import io.ktor.client.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.client.plugins.*
 import io.ktor.http.*
@@ -21,6 +22,10 @@ abstract class HttpImageProvider(protected val client: HttpClient) : ImageGenera
     protected suspend fun execute(request: ImageGenerationRequest, block: suspend () -> ProviderImage): ProviderImage {
         if (ImageModels.all.none { it.provider == id && it.id == request.model && it.supports(request.output) })
             throw GenerationFailure(GenerationError.InvalidRequest)
+        if (request.guideSpec != null && request.referenceGuide == null)
+            throw GenerationFailure(GenerationError.GuidePreparation)
+        if (request.referenceGuide != null && (!supportsVisualGuide || ImageModels.all.none { it.id == request.model && it.supportsVisualGuide }))
+            throw GenerationFailure(GenerationError.GuideUnsupported)
         try { return block() }
         catch (e: CancellationException) { throw e }
         catch (e: GenerationFailure) { throw e }
@@ -66,14 +71,27 @@ abstract class HttpImageProvider(protected val client: HttpClient) : ImageGenera
 }
 class OpenAiImageGenerationProvider(client: HttpClient) : HttpImageProvider(client) {
     override val id = ImageProviderId.OpenAI
+    override val supportsVisualGuide = true
     override suspend fun generate(request: ImageGenerationRequest, credentials: ProviderCredentials) = execute(request) {
-        val response = client.post("https://api.openai.com/v1/images/generations") {
+        val guide = request.referenceGuide
+        val response = client.post(if (guide == null) "https://api.openai.com/v1/images/generations" else "https://api.openai.com/v1/images/edits") {
             bearerAuth(credentials.apiKey)
-            contentType(ContentType.Application.Json)
-            setBody(buildJsonObject {
-                put("model", request.model); put("prompt", request.prompt); put("n", 1)
-                put("size", request.output.size); put("output_format", "png"); put("quality", "medium")
-            }.toString())
+            if (guide == null) {
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject {
+                    put("model", request.model); put("prompt", request.prompt); put("n", 1)
+                    put("size", request.output.size); put("output_format", "png"); put("quality", "medium")
+                }.toString())
+            } else {
+                setBody(MultiPartFormDataContent(formData {
+                    append("model", request.model); append("prompt", request.prompt); append("n", "1")
+                    append("size", request.output.size); append("output_format", "png"); append("quality", "medium")
+                    append("image[]", guide.bytes(), Headers.build {
+                        append(HttpHeaders.ContentType, guide.mimeType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"visual-guide.png\"")
+                    })
+                }))
+            }
         }
         val root = body(response)
         val images = root.array("data")
@@ -83,12 +101,18 @@ class OpenAiImageGenerationProvider(client: HttpClient) : HttpImageProvider(clie
 }
 class GeminiImageGenerationProvider(client: HttpClient) : HttpImageProvider(client) {
     override val id = ImageProviderId.Gemini
+    override val supportsVisualGuide = true
     override suspend fun generate(request: ImageGenerationRequest, credentials: ProviderCredentials) = execute(request) {
         val response = client.post("https://generativelanguage.googleapis.com/v1beta/models/${request.model}:generateContent") {
             header("x-goog-api-key", credentials.apiKey)
             contentType(ContentType.Application.Json)
             setBody(buildJsonObject {
-                putJsonArray("contents") { addJsonObject { putJsonArray("parts") { addJsonObject { put("text", request.prompt) } } } }
+                putJsonArray("contents") { addJsonObject { putJsonArray("parts") {
+                    addJsonObject { put("text", request.prompt) }
+                    request.referenceGuide?.let { guide -> addJsonObject { putJsonObject("inlineData") {
+                        put("mimeType", guide.mimeType); put("data", Base64.encode(guide.bytes()))
+                    } } }
+                } } }
                 putJsonObject("generationConfig") {
                     put("candidateCount", 1)
                     putJsonArray("responseModalities") { add("IMAGE") }

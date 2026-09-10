@@ -2,6 +2,8 @@ package com.kelvinsaputra.promptstudio.feature.generation
 
 import com.kelvinsaputra.promptstudio.credentials.CredentialStore
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
+import com.kelvinsaputra.promptstudio.domain.visualAssembly
+import com.kelvinsaputra.promptstudio.guide.*
 import com.kelvinsaputra.promptstudio.generation.model.*
 import com.kelvinsaputra.promptstudio.generation.provider.ImageGenerationProvider
 import com.kelvinsaputra.promptstudio.persistence.ProjectJson
@@ -23,17 +25,26 @@ class GenerationController(
     private val providers: List<ImageGenerationProvider>,
     private val credentials: CredentialStore,
     private val saveHistory: suspend (GeneratedImage) -> Unit = {},
+    private val guideRenderer: GuideRenderer = LocalGuideRenderer,
 ) {
     private val mutable = MutableStateFlow(GenerationUiState())
     val state = mutable.asStateFlow()
     private var job: Job? = null
-    fun generateCurrent(project: CharacterProject, model: ImageModelDefinition) {
+    fun supportsVisualGuide(model: ImageModelDefinition): Boolean =
+        model.supportsVisualGuide && providers.any { it.id == model.provider && it.supportsVisualGuide }
+
+    fun generateCurrent(project: CharacterProject, model: ImageModelDefinition, useVisualGuide: Boolean = false) {
         if (mutable.value.status is GenerationState.Generating) return
         val output = model.outputFor(project.output.aspectRatio)
         if (output == null) { fail(GenerationError.InvalidRequest); return }
         // Serialization detaches every nested list/set, including caller-owned mutable collections.
         val snapshot = try { ProjectJson.decode(ProjectJson.encode(project)) } catch (_: Exception) { fail(GenerationError.InvalidRequest); return }
-        val request = ImageGenerationRequest(snapshot.effectivePrompt(), snapshot.output.aspectRatio!!, model.id, output)
+        val guideSpec = if (useVisualGuide) {
+            if (!supportsVisualGuide(model)) { fail(GenerationError.GuideUnsupported); return }
+            GuideRenderSpec.from(snapshot.visualAssembly, snapshot.output.aspectRatio)
+                ?: run { fail(GenerationError.GuideUnsupported); return }
+        } else null
+        val request = ImageGenerationRequest(snapshot.effectivePrompt(), snapshot.output.aspectRatio!!, model.id, output, guideSpec)
         if (request.prompt.isBlank()) { fail(GenerationError.InvalidRequest); return }
         start(GenerationMetadata(model.provider, request, snapshot, outputFormat = if (model.provider == ImageProviderId.OpenAI) "png" else "provider-selected", quality = if (model.provider == ImageProviderId.OpenAI) "medium" else null))
     }
@@ -44,13 +55,24 @@ class GenerationController(
             fail(GenerationError.InvalidRequest); return
         }
         if (mutable.value.status is GenerationState.Generating) return
+        val provider = providers.firstOrNull { it.id == metadata.provider }
+        if (provider == null) { fail(GenerationError.InvalidRequest); return }
+        if (metadata.request.guideSpec != null && (!provider.supportsVisualGuide || ImageModels.all.none { it.id == metadata.request.model && it.supportsVisualGuide })) {
+            fail(GenerationError.GuideUnsupported); return
+        }
         mutable.update { it.copy(attemptedProvider = metadata.provider) }
         val key = try { credentials.get(metadata.provider) } catch (_: Exception) { null }
         if (key == null) { fail(GenerationError.MissingCredentials); return }
         mutable.update { it.copy(status = GenerationState.Generating(metadata)) }
         job = scope.launch {
             try {
-                val result = providers.first { it.id == metadata.provider }.generate(metadata.request, key)
+                val guide = metadata.request.guideSpec?.let { spec ->
+                    try { guideRenderer.render(spec) }
+                    catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { throw GenerationFailure(GenerationError.GuidePreparation) }
+                }
+                ensureActive()
+                val result = provider.generate(metadata.request.copy(referenceGuide = guide), key)
                 ensureActive()
                 val image = GeneratedImage(result.bytes, result.mimeType, metadata.copy(requestId = result.requestId, outputFormat = result.mimeType.substringAfter('/')))
                 mutable.value = GenerationUiState(GenerationState.Success, image, metadata.provider)

@@ -3,11 +3,18 @@ package com.kelvinsaputra.promptstudio
 import com.kelvinsaputra.promptstudio.credentials.*
 import com.kelvinsaputra.promptstudio.generation.model.*
 import com.kelvinsaputra.promptstudio.generation.provider.*
+import com.kelvinsaputra.promptstudio.guide.*
+import com.kelvinsaputra.promptstudio.domain.*
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.utils.io.*
+import kotlinx.io.readByteArray
+import kotlin.io.encoding.Base64
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.http.*
 import io.ktor.http.content.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
 import kotlin.test.*
@@ -43,12 +50,14 @@ class GenerationProviderTest {
                     assertEquals("864x1536", root["size"]!!.jsonPrimitive.content)
                     assertEquals("png", root["output_format"]!!.jsonPrimitive.content)
                     assertFalse("response_format" in root)
+                    assertFalse("image" in root || "images" in root)
                 } else {
                     assertEquals("generativelanguage.googleapis.com", req.url.host)
                     assertEquals("/v1beta/models/gemini-3.1-flash-image:generateContent", req.url.encodedPath)
                     assertTrue(req.headers["x-goog-api-key"] == "test-secret", "Expected API key header")
                     assertNull(req.headers[HttpHeaders.Authorization])
                     assertEquals(request(id).prompt, root["contents"]!!.jsonArray[0].jsonObject["parts"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content)
+                    assertEquals(1, root["contents"]!!.jsonArray[0].jsonObject["parts"]!!.jsonArray.size)
                     val config = root["generationConfig"]!!.jsonObject
                     assertEquals("IMAGE", config["responseModalities"]!!.jsonArray.single().jsonPrimitive.content)
                     assertEquals("9:16", config["imageConfig"]!!.jsonObject["aspectRatio"]!!.jsonPrimitive.content)
@@ -63,6 +72,65 @@ class GenerationProviderTest {
                 assertTrue(result.bytes.size > 50)
                 assertEquals(if(id == ImageProviderId.OpenAI) "openai-request" else "gemini-request", result.requestId)
                 assertEquals(1, calls)
+            } finally { client.close() }
+        }
+    }
+    @Test fun guidedRequestsUseSupportedImageInputsAndPreserveExactPrompt() = runTest {
+        for (model in ImageModels.all) {
+            val id = model.provider
+            val bytes = Base64.decode(png)
+            val guide = GuideImage(bytes, 1, 1)
+            val input = request(id).copy(model = model.id, referenceGuide = guide)
+            val client = HttpClient(MockEngine { req ->
+                if (id == ImageProviderId.OpenAI) {
+                    assertEquals("/v1/images/edits", req.url.encodedPath)
+                    val content = assertIs<MultiPartFormDataContent>(req.body)
+                    val channel = ByteChannel(autoFlush = true)
+                    val body = coroutineScope {
+                        launch { content.writeTo(channel); channel.close() }
+                        channel.readRemaining().readByteArray()
+                    }
+                    val text = body.decodeToString()
+                    fun field(name: String): String = text.split("--${content.contentType.parameter("boundary")}")
+                        .single { it.substringBefore("\r\n\r\n").contains(Regex("name=\"?$name\"?(?:\\r\\n|;)")) }
+                        .substringAfter("\r\n\r\n").removeSuffix("\r\n")
+                    assertEquals(input.prompt, field("prompt"))
+                    assertEquals(model.id, field("model"))
+                    assertEquals(input.output.size, field("size"))
+                    assertEquals("medium", field("quality"))
+                    assertEquals("png", field("output_format"))
+                    assertEquals("1", field("n"))
+                    assertContains(text, "name=\"image[]\"")
+                    assertContains(text, "filename=\"visual-guide.png\"")
+                    assertContains(text, "Content-Type: image/png")
+                    assertTrue(body.asList().windowed(bytes.size).any { it == bytes.asList() })
+                    assertFalse(text.contains("input_fidelity"))
+                } else {
+                    val root = Json.parseToJsonElement((req.body as TextContent).text).jsonObject
+                    val parts = root["contents"]!!.jsonArray.single().jsonObject["parts"]!!.jsonArray
+                    assertEquals(2, parts.size)
+                    assertEquals(input.prompt, parts[0].jsonObject["text"]!!.jsonPrimitive.content)
+                    val image = parts[1].jsonObject["inlineData"]!!.jsonObject
+                    assertEquals("image/png", image["mimeType"]!!.jsonPrimitive.content)
+                    assertContentEquals(bytes, Base64.decode(image["data"]!!.jsonPrimitive.content))
+                }
+                respond(success(id), HttpStatusCode.OK)
+            })
+            try { assertEquals("image/png", provider(id, client).generate(input, key).mimeType) }
+            finally { client.close() }
+        }
+    }
+
+    @Test fun missingPreparedGuideIsRejectedBeforeNetwork() = runTest {
+        for (id in ImageProviderId.entries) {
+            var calls = 0
+            val client = HttpClient(MockEngine { calls++; respond(success(id)) })
+            try {
+                val spec = GuideRenderSpec.from(CharacterProject().resetVisualAssembly().visualAssembly, "9:16")!!
+                assertEquals(GenerationError.GuidePreparation, assertFailsWith<GenerationFailure> {
+                    provider(id, client).generate(request(id).copy(guideSpec = spec), key)
+                }.error)
+                assertEquals(0, calls)
             } finally { client.close() }
         }
     }

@@ -22,6 +22,7 @@ enum class VisualPlacement(val label: String, val wording: String, val x: Float,
 }
 
 /** Read-only projection: pose/output remain authoritative, including unsupported authored values. */
+@Serializable
 data class VisualAssemblyState(
     val basePose: BasePose?,
     val facing: GuideFacing,

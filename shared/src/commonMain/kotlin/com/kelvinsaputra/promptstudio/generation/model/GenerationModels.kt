@@ -1,6 +1,9 @@
 package com.kelvinsaputra.promptstudio.generation.model
 
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
+import com.kelvinsaputra.promptstudio.guide.GuideImage
+import com.kelvinsaputra.promptstudio.guide.GuideRenderSpec
+import kotlinx.serialization.Transient
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.roundToInt
@@ -11,6 +14,7 @@ import kotlinx.serialization.Serializable
 data class ImageModelDefinition(
     val id: String, val displayName: String, val provider: ImageProviderId,
     val outputs: List<EffectiveOutput>, val customPixelSizes: Boolean = false,
+    val supportsVisualGuide: Boolean = false,
 ) {
     fun outputFor(ratio: String?): EffectiveOutput? {
         val value = ratioValue(ratio) ?: return null
@@ -63,19 +67,25 @@ object ImageModels {
             EffectiveOutput("3:2", "1536x1024"), EffectiveOutput("2:3", "1024x1536"),
         )
     val all = listOf(
-        ImageModelDefinition("gpt-image-2.5-sunburst", "GPT Image 2.5 Sunburst", ImageProviderId.OpenAI, openAiOutputs, customPixelSizes = true),
-        ImageModelDefinition("gpt-image-2", "GPT Image 2", ImageProviderId.OpenAI, openAiOutputs, customPixelSizes = true),
+        ImageModelDefinition("gpt-image-2.5-sunburst", "GPT Image 2.5 Sunburst", ImageProviderId.OpenAI, openAiOutputs, customPixelSizes = true, supportsVisualGuide = true),
+        ImageModelDefinition("gpt-image-2", "GPT Image 2", ImageProviderId.OpenAI, openAiOutputs, customPixelSizes = true, supportsVisualGuide = true),
         ImageModelDefinition("gemini-3.1-flash-image", "Gemini 3.1 Flash Image", ImageProviderId.Gemini,
-            listOf("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9").map { EffectiveOutput(it, "1K") }),
+            listOf("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9").map { EffectiveOutput(it, "1K") }, supportsVisualGuide = true),
     )
     fun default(provider: ImageProviderId) = all.first { it.provider == provider }
 }
-@Serializable data class ImageGenerationRequest(val prompt: String, val requestedAspectRatio: String, val model: String, val output: EffectiveOutput)
+@Serializable data class ImageGenerationRequest(
+    val prompt: String, val requestedAspectRatio: String, val model: String, val output: EffectiveOutput,
+    val guideSpec: GuideRenderSpec? = null,
+    @Transient val referenceGuide: GuideImage? = null,
+)
 @Serializable data class GenerationMetadata(val provider: ImageProviderId, val request: ImageGenerationRequest, val project: CharacterProject, val requestId: String? = null, val outputFormat: String, val quality: String? = null)
 /** Byte ownership transfers to the session; identity equality avoids ByteArray data-class surprises. */
 class GeneratedImage(val bytes: ByteArray, val mimeType: String, val metadata: GenerationMetadata)
 class ProviderImage(val bytes: ByteArray, val mimeType: String, val requestId: String? = null)
 enum class GenerationError(val message: String) {
+    GuidePreparation("Could not prepare the visual guide. Try again, or turn off Use visual guide and generate without it."),
+    GuideUnsupported("A visual guide is unavailable for these choices. Turn off Use visual guide to generate with text only."),
     MissingCredentials("Enter an API key for this provider."),
     Authentication("The provider rejected access. Check your API key and model permissions."),
     RateLimit("Provider quota or rate limit reached. Check billing or wait before trying again."),
