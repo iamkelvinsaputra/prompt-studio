@@ -66,7 +66,7 @@ private fun RotationControl(label: String, value: Float, onChange: (Float) -> Un
 @Composable
 internal fun CurrentStyleSample(project: CharacterProject, modifier: Modifier = Modifier) {
     val sample = VisualAssetCatalog.sample(project)
-    if (sample != null) Image(painterResource(VisualAssetCatalog.style(sample)), "${sample.label} benchmark sample", modifier, contentScale = ContentScale.Fit)
+    if (sample != null && VisualAssetCatalog.style(sample) != null) Image(painterResource(requireNotNull(VisualAssetCatalog.style(sample))), "${sample.label} benchmark sample", modifier, contentScale = ContentScale.Fit)
     else Surface(modifier, color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium) {
         Box(contentAlignment = Alignment.Center) { Text("Custom style\nNo preview sample", Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium) }
     }
@@ -78,18 +78,27 @@ internal fun ArtStyleChoices(project: CharacterProject, onProject: (CharacterPro
     var advanced by rememberSaveable { mutableStateOf(false) }
     val style = project.artStyle
     if (style.manualMode) Text("Your custom style is active. Switch to structured style to use the library choices.", style = MaterialTheme.typography.bodySmall)
-    ChoiceLayout(StyleLook.entries, compact) { look, modifier ->
-        VisualChoiceCard(look.label, style.preset == look, { onProject(project.withStylePreset(look)) }, modifier) {
-            Image(painterResource(VisualAssetCatalog.style(look)), "${look.label} style sample", Modifier.fillMaxWidth().aspectRatio(1f), contentScale = ContentScale.Fit)
+    var all by remember { mutableStateOf(false) }
+    val choices = if (all) StyleLook.entries else (listOf(StyleLook.ANIME, StyleLook.GAME, StyleLook.CEL, StyleLook.PAINTERLY_ANIME, StyleLook.WATERCOLOR_ANIME, StyleLook.MANGA) + listOfNotNull(style.preset)).distinct()
+    ChoiceLayout(choices, compact) { look, modifier ->
+        VisualChoiceCard(look.label, style.preset == look, { onProject(project.withStylePreset(look).useStructuredStyle()) }, modifier) {
+            Text(look.rendering, Modifier.padding(14.dp), style = MaterialTheme.typography.bodySmall)
         }
     }
-    Text("Samples compare the same subject. Refinements affect the prompt; samples stay fixed.", style = MaterialTheme.typography.bodySmall)
+    TextButton(onClick = { all = !all }) { Text(if (all) "Show fewer styles" else "Browse all ${StyleLook.entries.size} styles") }
     TextButton(onClick = { edit = !edit }) { Text(if (edit) "Hide style refinements" else "Refine style") }
     if (edit) {
         val a = style.adjustments; val resolved = project.resolvedStyleAdjustments
         StyleChips("Ink", StyleInk.entries, resolved.ink, { it.label }) { onProject(project.withStyleAdjustments(a.copy(ink = it))) }
         StyleChips("Mood", StyleMood.entries, resolved.mood, { it.label }) { onProject(project.withStyleAdjustments(a.copy(mood = it))) }
-        StyleChips("Color", StyleColor.entries, resolved.color, { it.label }) { onProject(project.withStyleAdjustments(a.copy(color = it))) }
+        Text("Set the palette in Color. These controls describe rendering only.", style = MaterialTheme.typography.bodySmall)
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Line treatment", listOf("Fine", "Bold", "Broken", "No outlines"), style.lineTreatment) { onProject(project.copy(artStyle = style.copy(lineTreatment = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Shading", listOf("Cel", "Soft gradients", "Crosshatching", "Flat"), style.shading) { onProject(project.copy(artStyle = style.copy(shading = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Rendering", listOf("Clean", "Painterly", "Sketch-like"), style.rendering) { onProject(project.copy(artStyle = style.copy(rendering = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Texture", listOf("Smooth", "Paper grain", "Dry brush"), style.texture) { onProject(project.copy(artStyle = style.copy(texture = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Detail", listOf("Minimal", "Selective", "Intricate"), style.detail) { onProject(project.copy(artStyle = style.copy(detail = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Edge treatment", listOf("Crisp", "Soft", "Lost and found"), style.edges) { onProject(project.copy(artStyle = style.copy(edges = it))) }
+        com.kelvinsaputra.promptstudio.feature.studio.Choices("Brush character", listOf("Smooth", "Textured", "Expressive"), style.brush) { onProject(project.copy(artStyle = style.copy(brush = it))) }
         TextButton(onClick = { onProject(project.withStyleAdjustments(StyleAdjustments())) }) { Text("Reset style refinements") }
     }
     TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Hide custom style" else "Custom style…") }

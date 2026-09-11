@@ -515,5 +515,175 @@
             "prop-placement"
         ],
         "order": 67
+    },
+    "lighting-direction/front": {
+        "image": "lighting-direction/front.png",
+        "description": "Light faces the character; face and chest are bright.",
+        "order": 0,
+        "tags": [
+            "light",
+            "direction",
+            "front"
+        ]
+    },
+    "lighting-direction/front-left": {
+        "image": "lighting-direction/front-left.png",
+        "description": "Light from front-left brightens that side of the figure.",
+        "order": 1,
+        "tags": [
+            "light",
+            "direction",
+            "front-left"
+        ]
+    },
+    "lighting-direction/front-right": {
+        "image": "lighting-direction/front-right.png",
+        "description": "Light from front-right brightens that side of the figure.",
+        "order": 2,
+        "tags": [
+            "light",
+            "direction",
+            "front-right"
+        ]
+    },
+    "lighting-direction/left": {
+        "image": "lighting-direction/left.png",
+        "description": "Light from left side brightens that side of the figure.",
+        "order": 3,
+        "tags": [
+            "light",
+            "direction",
+            "left side"
+        ]
+    },
+    "lighting-direction/right": {
+        "image": "lighting-direction/right.png",
+        "description": "Light from right side brightens that side of the figure.",
+        "order": 4,
+        "tags": [
+            "light",
+            "direction",
+            "right side"
+        ]
+    },
+    "lighting-direction/back": {
+        "image": "lighting-direction/back.png",
+        "description": "Light behind the character outlines the silhouette.",
+        "order": 5,
+        "tags": [
+            "light",
+            "direction",
+            "back"
+        ]
+    },
+    "lighting-direction/back-left": {
+        "image": "lighting-direction/back-left.png",
+        "description": "Light behind the character outlines the silhouette.",
+        "order": 6,
+        "tags": [
+            "light",
+            "direction",
+            "back-left"
+        ]
+    },
+    "lighting-direction/back-right": {
+        "image": "lighting-direction/back-right.png",
+        "description": "Light behind the character outlines the silhouette.",
+        "order": 7,
+        "tags": [
+            "light",
+            "direction",
+            "back-right"
+        ]
+    },
+    "lighting-direction/top": {
+        "image": "lighting-direction/top.png",
+        "description": "Light overhead brightens the head and shoulders.",
+        "order": 8,
+        "tags": [
+            "light",
+            "direction",
+            "top"
+        ]
+    },
+    "lighting-direction/below": {
+        "image": "lighting-direction/below.png",
+        "description": "Light below brightens the chin and lower surfaces.",
+        "order": 9,
+        "tags": [
+            "light",
+            "direction",
+            "below"
+        ]
+    },
+    "environment/none": {
+        "image": "environment/none.png",
+        "description": "No environment setting; refine the place after selecting.",
+        "order": 0
+    },
+    "environment/minimal": {
+        "image": "environment/minimal.png",
+        "description": "Minimal setting; refine the place after selecting.",
+        "order": 1
+    },
+    "environment/studio": {
+        "image": "environment/studio.png",
+        "description": "Studio setting; refine the place after selecting.",
+        "order": 2
+    },
+    "environment/interior": {
+        "image": "environment/interior.png",
+        "description": "Interior setting; refine the place after selecting.",
+        "order": 3
+    },
+    "environment/urban": {
+        "image": "environment/urban.png",
+        "description": "Urban setting; refine the place after selecting.",
+        "order": 4
+    },
+    "environment/nature": {
+        "image": "environment/nature.png",
+        "description": "Nature setting; refine the place after selecting.",
+        "order": 5
+    },
+    "environment/fantasy": {
+        "image": "environment/fantasy.png",
+        "description": "Fantasy setting; refine the place after selecting.",
+        "order": 6
+    },
+    "environment/sci-fi": {
+        "image": "environment/sci-fi.png",
+        "description": "Sci-fi setting; refine the place after selecting.",
+        "order": 7
+    },
+    "environment/abstract": {
+        "image": "environment/abstract.png",
+        "description": "Abstract setting; refine the place after selecting.",
+        "order": 8
+    },
+    "camera-angle/eye-level": {
+        "image": "camera-angle/eye-level.png",
+        "description": "Camera meets the character at eye height.",
+        "order": 0
+    },
+    "camera-angle/low": {
+        "image": "camera-angle/low.png",
+        "description": "Camera below the character looks upward.",
+        "order": 1
+    },
+    "camera-angle/high": {
+        "image": "camera-angle/high.png",
+        "description": "Camera above the character looks downward.",
+        "order": 2
+    },
+    "camera-angle/overhead": {
+        "image": "camera-angle/overhead.png",
+        "description": "Camera directly overhead looks straight down.",
+        "order": 3
+    },
+    "camera-angle/dutch": {
+        "image": "camera-angle/dutch.png",
+        "description": "A tilted frame creates a diagonal horizon.",
+        "order": 4
     }
 }

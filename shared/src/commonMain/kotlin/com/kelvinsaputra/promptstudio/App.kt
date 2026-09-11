@@ -42,6 +42,12 @@ fun App() {
             ProjectsScreen(state, editor) { projects = false; editor.selectModule(com.kelvinsaputra.promptstudio.feature.editor.EditorModule.VisualBuild) }
             return@StudioTheme
         }
+        if (state.project.creationStep != null) {
+            com.kelvinsaputra.promptstudio.feature.studio.GuidedCreation(state, editor, { projects = true }) {
+                GenerationAndHistory(state.project, generation, credentials, selection, history, editor::restoreConfiguration, editor::showMessage, GenerationVariant(variants.activeId, variants.activeName))
+            }
+            return@StudioTheme
+        }
         EditorScreen(
             state = state,
             onProjects = { projects = true },

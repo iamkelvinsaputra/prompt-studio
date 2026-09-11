@@ -16,7 +16,7 @@ class StudioDomainTest {
         assertNotNull(p.output.aspectRatio)
         assertNotNull(GuideRenderSpec.from(p.visualAssembly, p.output.aspectRatio))
         val text = p.effectivePrompt()
-        for (style in listOf("sumi-e", "watercolor", "sky-blue", "female", "antihero")) assertFalse(text.contains(style))
+        for (style in listOf("sumi-e", "watercolor", "sky-blue", "antihero")) assertFalse(text.contains(style))
         assertEquals(text, ProjectJson.decode(ProjectJson.encode(p)).effectivePrompt())
     }
     @Test fun cameraCustomValuesAndNegativeDeduplicationReachCompiler() {

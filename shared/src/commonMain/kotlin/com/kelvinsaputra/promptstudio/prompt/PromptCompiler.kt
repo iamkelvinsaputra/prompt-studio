@@ -14,31 +14,37 @@ class PromptCompiler {
         CompiledPrompt(listOfNotNull(
             section("ART STYLE CORE", effectiveArtStyleCore().trim()),
             section("OUTPUT INTENT", outputIntent(output)),
-            section("SUBJECT", subjectBlock(identity, subject)),
+            section(if (profile.enabled) "CHARACTER IDENTITY" else "SUBJECT", if (profile.enabled) compileCharacterIdentity(project) else "$characterName\n${subjectBlock(identity, subject)}"),
             section("ROLE", roleBlock(role)),
             section("CORE VISUAL THESIS", sentenceContent(coreVisualThesis)),
             section("PERSONALITY READ", personalityBlock(personality)),
             section("INNER CONTRADICTION", contradictionBlock(contradiction)),
-            section("BODY", bodyBlock(body)),
-            section("FACE", faceBlock(face)),
+            section("BODY", if (profile.enabled) "" else bodyBlock(body)),
+            section("FACE", if (profile.enabled) "" else faceBlock(face)),
             section("EXPRESSION", expressionBlock(expression)),
-            section("HAIR", hairBlock(hair)),
+            section("HAIR", if (profile.enabled) "" else hairBlock(hair)),
             section("COSTUME", costumeBlock(costume)),
+            section("APPEARANCE MOTION", if (profile.enabled) sentence("Hair movement", hair.movementBehavior).orEmpty() else ""),
             section("ACCESSORIES", simpleListBlock(accessories.items, accessories.additionalInstructions)),
             section("SHAPE LANGUAGE", shapeLanguageBlock(shapeLanguage)),
             section("SUPERNATURAL SIGNATURE", powerBlock(powerSignature)),
+            section("EFFECTS", compileEffects(effects)),
             section("PROP / WEAPON / TOOL", propBlock(prop)),
             section("POSE", poseBlock(pose, visualAssembly, gazeDirection.hasContent())),
             section("GAZE / HEAD DIRECTION", gazeBlock(gazeDirection)),
             section("COMPOSITION", composition(output, composition, visualAssembly)),
             section("ENVIRONMENT / BACKGROUND", environmentBlock(environment)),
             section("LIGHTING", lightingBlock(lighting)),
+            section("COLOR DIRECTION", compileColorDirection(colorDirection)),
             section("ACCENT COLOR POLICY", colorAccentBlock(colorAccents)),
             section("SURFACE / TEXTURE", surfaceBlock(surfaceTexture)),
             section("PRIORITY STACK", priorityBlock(priorityStack)),
             section("AVOID", listBullets(exclusions)),
             section("DESCRIBE ADJUSTMENT", adjustmentBlock(promptAuthoring.adjustmentText)),
-        ))
+        ).let { sections -> if (!profile.enabled) sections else sections.sortedBy { section ->
+            val order = listOf("CHARACTER IDENTITY", "ROLE", "CORE VISUAL THESIS", "PERSONALITY READ", "INNER CONTRADICTION", "EXPRESSION", "COSTUME", "APPEARANCE MOTION", "ACCESSORIES", "SHAPE LANGUAGE", "PROP / WEAPON / TOOL", "POSE", "GAZE / HEAD DIRECTION", "COMPOSITION", "ENVIRONMENT / BACKGROUND", "LIGHTING", "ART STYLE CORE", "SURFACE / TEXTURE", "COLOR DIRECTION", "ACCENT COLOR POLICY", "EFFECTS", "SUPERNATURAL SIGNATURE", "OUTPUT INTENT", "PRIORITY STACK", "AVOID", "DESCRIBE ADJUSTMENT")
+            order.indexOf(section.title).let { if (it < 0) order.size else it }
+        } })
     }
 
     private fun section(title: String, body: String): PromptSection? =
@@ -134,7 +140,7 @@ class PromptCompiler {
             c.exposureLevel.isNotBlank() || c.customNotes.isNotBlank()
         return listOfNotNull(
             sentence("Costume concept", c.outfitIdentity), subsection("Base outfit:", layers),
-            sentence("Material feel", c.materialFeel), sentence("Exposure level", c.exposureLevel),
+            sentence("Layering", c.layering), sentence("Material feel", c.materialFeel), sentence("Exposure level", c.exposureLevel),
             "Costume requirements:\n- believable seams\n- practical closures\n- realistic fabric thickness\n- readable material differences\n- understandable layering\n- plausible construction".takeIf { configured },
             subsection("Additional costume notes:", c.customNotes.trim()),
         ).joinToString("\n\n")
@@ -201,13 +207,19 @@ class PromptCompiler {
     ).joinToString("\n")
 
     private fun environmentBlock(value: EnvironmentConfiguration): String = listOfNotNull(
+        bullet("setting", value.category?.label),
+        bullet("time of day", value.time), bullet("weather", value.weather), bullet("season", value.season),
+        bullet("density", value.density), bullet("background detail", value.backgroundDetail), bullet("foreground", value.foreground),
+        bullet("architecture", value.architecture), bullet("mood", value.mood),
         sentence("World / context hint", value.worldContextHint), optionBullet("abstraction level", value.abstractionLevel),
         bullet("depth behavior", value.depthBehavior), bullet("motif / support element", value.motifOrSupportElement),
         additional(value.additionalInstructions),
     ).joinToString("\n")
 
     private fun lightingBlock(value: LightingConfiguration): String = listOfNotNull(
-        optionBullet("source / quality", value.sourceQuality), bullet("direction", value.direction),
+        bullet("lighting preset", value.preset), optionBullet("source / quality", value.sourceQuality),
+        bullet("direction", value.lightDirection?.wording ?: value.direction), bullet("quality", value.quality),
+        bullet("temperature", value.temperature), bullet("contrast", value.contrast),
         optionBullet("shadow softness", value.shadowSoftness), bullet("mood effect", value.moodEffect),
         bullet("lighting exclusions", value.exclusions), additional(value.additionalInstructions),
     ).joinToString("\n")

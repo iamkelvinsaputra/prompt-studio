@@ -27,12 +27,14 @@ fun PresetLibrary(state: EditorUiState, editor: EditorViewModel) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Your presets", style = MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { saving = "pose" }) { Text("Save pose") }
-            TextButton(onClick = { saving = "composition" }) { Text("Save composition") }
-            TextButton(onClick = { saving = "character" }) { Text("Save character") }
-            TextButton(onClick = { saving = "style" }) { Text("Save style") }
-            TextButton(onClick = { saving = "complete" }) { Text("Save complete") }
+        var menu by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(onClick = { menu = true }) { Text("Save preset ▾") }
+            DropdownMenu(menu, { menu = false }) {
+                listOf("Character" to "character", "Pose" to "pose", "Camera" to "composition", "Style" to "style", "Complete" to "complete").forEach { (label, category) ->
+                    DropdownMenuItem(text = { Text("$label preset") }, onClick = { saving = category; menu = false })
+                }
+            }
         }
         if (state.library.presets.isEmpty()) Text("Save a building block or a complete configuration to reuse in any project.", style = MaterialTheme.typography.bodySmall)
         else {

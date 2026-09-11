@@ -6,6 +6,7 @@ interface PromptOption { val wording: String }
 
 @Serializable
 enum class AgeBand(override val wording: String) : PromptOption {
+    TEEN("teen"),
     LATE_TEEN("late-teen"),
     YOUNG_ADULT("young adult"),
     ADULT("adult"),
@@ -167,6 +168,9 @@ enum class Silhouette(override val wording: String) : PromptOption {
 
 @Serializable
 enum class Outerwear(override val wording: String) : PromptOption {
+    OVERSHIRT("overshirt"),
+    CARDIGAN("oversized cardigan"),
+    ATHLETIC_JACKET("athletic jacket"),
     CROPPED_JACKET("cropped jacket"),
     BOMBER("bomber"),
     FIELD_JACKET("field jacket"),
@@ -179,6 +183,9 @@ enum class Outerwear(override val wording: String) : PromptOption {
 
 @Serializable
 enum class Innerwear(override val wording: String) : PromptOption {
+    TEE("tee"),
+    BLOUSE("blouse"),
+    TANK("tank top"),
     FITTED_TOP("fitted top"),
     MOCK_NECK("mock neck"),
     SHIRT("shirt"),
@@ -190,6 +197,9 @@ enum class Innerwear(override val wording: String) : PromptOption {
 
 @Serializable
 enum class LowerWear(override val wording: String) : PromptOption {
+    STRAIGHT_TROUSERS("straight trousers"),
+    CARGOS("cargo pants"),
+    TRAINING_WEAR("training trousers"),
     SHORTS("shorts"),
     SLIM_TROUSERS("slim trousers"),
     WIDE_TROUSERS("wide trousers"),

@@ -32,7 +32,7 @@ class PromptCompilerTest {
         ), pose = PoseConfiguration(null, null, "", null, null, null, null, null, "", ""))).text
         assertFalse(text.contains("null"))
         assertFalse(Regex("(?m)^- [^\\n]*:\\s*$").containsMatchIn(text))
-        listOf("Base outfit:", "Material feel:", "Additional costume notes:", "SUBJECT", "POSE").forEach {
+        listOf("Base outfit:", "Material feel:", "Additional costume notes:", "POSE").forEach {
             assertFalse(text.contains(it), it)
         }
     }
@@ -75,7 +75,7 @@ class PromptCompilerTest {
         assertTrue(text.isNotBlank())
         val headings = text.lines().filter { it.isNotBlank() && it.all { c -> c.isUpperCase() || c == ' ' } }
         assertEquals(listOf("ART STYLE CORE", "OUTPUT INTENT", "SUBJECT", "COSTUME", "POSE", "COMPOSITION"), headings)
-        assertContains(text, "SUBJECT\n\n${CharacterProject().subject}")
+        assertContains(text, "SUBJECT\n\n${CharacterProject().name}\n${CharacterProject().subject}")
         assertFalse(text.endsWith("\n"))
     }
 

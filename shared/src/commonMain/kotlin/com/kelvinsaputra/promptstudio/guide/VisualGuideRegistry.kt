@@ -37,5 +37,7 @@ object VisualGuideRegistry {
     val head = options("head-direction", Head.entries, { it.wording.replaceFirstChar { it.uppercase() } }, { it.wording })
     val arms = options("arm-position", Arms.entries, { it.wording.replaceFirstChar { it.uppercase() } }, { it.wording })
     val prop = options("prop-placement", GuideProp.entries, { it.label }, { it.wording })
-    val all get() = poses + camera + facing + framing + placement + composition + gaze + head + arms + prop
+    val lighting = options("lighting-direction", LightDirection.entries, { it.label }, { it.wording })
+    val environment = options("environment", EnvironmentCategory.entries, { it.label })
+    val all get() = poses + camera + facing + framing + placement + composition + gaze + head + arms + prop + lighting + environment
 }

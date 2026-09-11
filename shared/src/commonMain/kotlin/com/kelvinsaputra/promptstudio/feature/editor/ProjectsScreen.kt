@@ -33,7 +33,7 @@ fun ProjectsScreen(state: EditorUiState, editor: EditorViewModel, onOpen: () -> 
             Text("Prompt Studio", style = MaterialTheme.typography.headlineMedium)
             Text("A place for your next character.", style = MaterialTheme.typography.headlineLarge)
             Text("Choose a study to continue, or start with a fresh idea. Your work stays on this device.", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = { creating = true }) { Text("New project") }
+            Button(onClick = { editor.createProject("Untitled study", OutputType.PORTRAIT); onOpen() }) { Text("New project") }
             state.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = editor::retrySave) { Text("Retry Save") } }
             state.message?.let { Text(it); TextButton(onClick = editor::dismissMessage) { Text("Dismiss") } }
             LazyVerticalGrid(GridCells.Adaptive(260.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -61,7 +61,7 @@ fun ProjectsScreen(state: EditorUiState, editor: EditorViewModel, onOpen: () -> 
 fun VariantBar(state: EditorUiState, editor: EditorViewModel) {
     var dialog by remember { mutableStateOf<String?>(null) }
     val variants = state.library.activeVariants
-    if (dialog == "add") OutputNameDialog("New variant", "Desktop", { dialog = null }, OutputType.DESKTOP) { name, type ->
+    if (dialog == "add") OutputNameDialog("Create variant", "${variants.activeName} variation", { dialog = null }, state.project.output.type) { name, type ->
         editor.addVariant(name, type); dialog = null
     }
     if (dialog == "rename") SimpleNameDialog("Rename variant", variants.activeName, { dialog = null }) { editor.renameVariant(it); dialog = null }
@@ -94,9 +94,9 @@ fun VariantBar(state: EditorUiState, editor: EditorViewModel) {
             }
         }
         }
-        TextButton(onClick = { dialog = "add" }) { Text("+ Variant") }
+        TextButton(onClick = { dialog = "add" }) { Text("Create variant") }
         Box {
-            TextButton(onClick = { menu = true }) { Text("Edit") }
+            TextButton(onClick = { menu = true }) { Text("Variant menu") }
             DropdownMenu(menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text("Rename variant") }, onClick = { menu = false; dialog = "rename" })
                 DropdownMenuItem(text = { Text("Delete variant") }, enabled = variants.activeId != PRIMARY_VARIANT, onClick = { menu = false; dialog = "delete" })

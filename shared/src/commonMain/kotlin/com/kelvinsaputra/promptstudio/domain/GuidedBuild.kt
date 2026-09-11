@@ -93,7 +93,15 @@ fun CharacterProject.guideSummary(step: GuideStep): String = when (step) {
 
 /** New studio projects start usable without inheriting the historical demo's aesthetic. */
 fun CharacterProject.withStudioDefaults() = resetVisualAssembly().copy(
-    subject = "An original character with a clear, readable silhouette.",
+    subject = "",
+    identity = IdentityConfiguration(characterName = "Alex", ageBand = AgeBand.YOUNG_ADULT, genderPresentation = GenderPresentation.FEMALE),
+    profile = CharacterProfile(enabled = true),
+    creationStep = 0,
+    environment = EnvironmentConfiguration(category = EnvironmentCategory.MINIMAL, abstractionLevel = EnvironmentAbstraction.MINIMAL),
+    lighting = LightingConfiguration(sourceQuality = LightingSource.SOFT_DIFFUSE_DAYLIGHT, lightDirection = LightDirection.FRONT_LEFT, quality = "soft", temperature = "neutral"),
+    colorDirection = ColorDirection(description = "Natural balanced"),
+    costume = CostumeConfiguration(outfitIdentity = "everyday separates", innerwear = Innerwear.SHIRT, lowerWear = LowerWear.SLIM_TROUSERS, footwear = Footwear.SNEAKERS, outerwear = null, legwear = null, handwear = null, utility = null, customization = emptySet(), materialFeel = "cotton", exposureLevel = "", silhouette = Silhouette.FITTED),
+    composition = CompositionConfiguration(cameraAngle = CameraAngle.EYE_LEVEL),
     style = ArtStylePreset("neutral-illustration", "Illustration", "A thoughtfully composed character illustration with clear forms and readable materials."),
     artStyle = ArtStyleConfiguration(),
     output = output.copy(type = OutputType.PORTRAIT, framing = Framing.FULL_BODY, figurePlacement = "center", negativeSpace = "", clockSafe = false, iconSafe = false),

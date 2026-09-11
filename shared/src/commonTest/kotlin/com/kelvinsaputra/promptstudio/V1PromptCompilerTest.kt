@@ -70,7 +70,7 @@ class V1PromptCompilerTest {
         ), pose = PoseConfiguration(basePose = null, weight = null, legAction = "", torso = null, arms = null, head = null, gaze = null, energy = null, motionDirection = ""),
             output = OutputConfiguration(framing = null, figurePlacement = "", negativeSpace = "", safeArea = "", clockSafe = false, iconSafe = false),
         )).text
-        assertEquals(listOf("ART STYLE CORE", "OUTPUT INTENT"), text.lines().filter { it.isNotBlank() && it.all { c -> c.isUpperCase() || c == ' ' } })
+        assertEquals(listOf("ART STYLE CORE", "OUTPUT INTENT", "SUBJECT"), text.lines().filter { it.isNotBlank() && it.all { c -> c.isUpperCase() || c == ' ' } })
     }
 
     @Test fun V0SerializedProjectDecodesIntoExpandedDefaults() {

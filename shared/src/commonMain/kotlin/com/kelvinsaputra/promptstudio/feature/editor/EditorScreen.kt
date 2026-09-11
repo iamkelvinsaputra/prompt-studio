@@ -100,7 +100,7 @@ fun EditorScreen(
                                 Text(project.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
                             }
                             Box {
-                                TextButton(onClick = { menu = true }) { Text("Project") }
+                                TextButton(onClick = { menu = true }) { Text("Project menu") }
                                 DropdownMenu(menu, { menu = false }) {
                                     state.library.characters.forEach { character -> DropdownMenuItem(text = { Text(character.name) }, onClick = { onSelectCharacter(character.id); menu = false }) }
                                     HorizontalDivider()
@@ -113,8 +113,7 @@ fun EditorScreen(
                                     DropdownMenuItem(text = { Text("Delete project") }, onClick = { delete = true; menu = false })
                                 }
                             }
-                            if (!compact) {
-                                OutlinedButton(onClick = copy, enabled = canCopy) { Text("Copy prompt") }
+                            if (!compact && view != "generate") {
                                 Button(onClick = { view = "generate" }) { Text("Generate") }
                             }
                         }
@@ -153,7 +152,7 @@ fun EditorScreen(
                                         Text(category.title, style = MaterialTheme.typography.headlineLarge)
                                         Text(category.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    AdvancedSection("Section actions") {
                                         TextButton(onClick = { onProject(project.resetStudioCategory(category)) }) { Text("Reset category") }
                                         if (category == StudioCategory.Pose) TextButton(onClick = onRandomizePose, enabled = VariationField.Pose !in state.variationLocks) { Text("Randomize pose") }
                                         if (category == StudioCategory.Appearance) TextButton(onClick = onRandomizeCostume, enabled = VariationField.Costume !in state.variationLocks) { Text("Randomize outfit") }
@@ -161,7 +160,7 @@ fun EditorScreen(
                                     }
                                     if (library) {
                                         variantContent(); presetContent()
-                                        AdvancedSection("Explore unlocked choices") {
+                                        AdvancedSection("Variation controls") {
                                             Text("Locks protect categories when exploring. Your custom wording stays in place.", style = MaterialTheme.typography.bodySmall)
                                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 VariationField.entries.forEach { field -> FilterChip(field in state.variationLocks,
@@ -190,7 +189,6 @@ fun EditorScreen(
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = { view = if (view == "prompt") "editor" else "prompt" }, modifier = Modifier.weight(1f)) { Text(if (view == "prompt") "Edit" else "Inspect prompt") }
                             if (compact) {
-                                OutlinedButton(onClick = copy, enabled = canCopy) { Text("Copy") }
                                 Button(onClick = { view = "generate" }) { Text("Generate") }
                             }
                         }

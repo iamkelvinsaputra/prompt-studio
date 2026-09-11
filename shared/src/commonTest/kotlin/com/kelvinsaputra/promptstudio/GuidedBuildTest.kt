@@ -31,7 +31,7 @@ class GuidedBuildTest {
     @Test fun onboardingBackAndForwardPreserveSelectionsAndFinishAtSummary() {
         val editor = EditorViewModel(); editor.createProject("New", OutputType.PHONE)
         assertEquals(GuidedNavigation.newProject(), editor.state.value.guided)
-        assertNull(editor.state.value.project.identity.ageBand) // New studio defaults make no age assumption.
+        assertEquals(AgeBand.YOUNG_ADULT, editor.state.value.project.identity.ageBand) // Guided creation starts with a valid presentation.
         editor.setProject(editor.state.value.project.withGuideGender(GenderPresentation.MALE))
         editor.navigateGuide(editor.state.value.guided.forward())
         editor.setProject(editor.state.value.project.withGuideAge(AgeBand.YOUNG_ADULT))
@@ -169,7 +169,8 @@ class GuidedBuildTest {
         var library = CharacterLibrary(p.id, listOf(p)).addVariant("Landscape", OutputType.DESKTOP)
         library = library.replaceActive(library.active.withStylePreset(StyleLook.PAINTERLY).withGuidePosition(VisualPlacement.LEFT))
         assertEquals(library, CharacterLibraryJson.decode(CharacterLibraryJson.encode(library)))
-        assertEquals(StyleLook.PAINTERLY, library.characters.single().artStyle.preset)
+        assertEquals(StyleLook.ANIME_INK, library.characters.single().artStyle.preset)
+        assertEquals(StyleLook.PAINTERLY, library.active.artStyle.preset)
         assertEquals(VisualPlacement.LEFT, library.active.visualAssembly.placementPreset)
         assertEquals(VisualPlacement.CENTER, library.characters.single().visualAssembly.placementPreset)
     }

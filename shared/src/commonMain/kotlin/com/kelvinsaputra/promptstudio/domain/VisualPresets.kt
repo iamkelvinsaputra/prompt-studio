@@ -18,7 +18,7 @@ sealed interface VisualPresetValue {
 
     @Serializable
     data class Character(val snapshot: CharacterProject) : VisualPresetValue {
-        override fun applyTo(project: CharacterProject) = project.copy(subject = snapshot.subject, identity = snapshot.identity,
+        override fun applyTo(project: CharacterProject) = project.copy(profile = snapshot.profile.copy(lockedTraits = project.profile.lockedTraits), subject = snapshot.subject, identity = snapshot.identity,
             role = snapshot.role, coreVisualThesis = snapshot.coreVisualThesis, personality = snapshot.personality,
             contradiction = snapshot.contradiction, body = snapshot.body, face = snapshot.face, expression = snapshot.expression,
             hair = snapshot.hair, costume = snapshot.costume, accessories = snapshot.accessories, shapeLanguage = snapshot.shapeLanguage, prop = snapshot.prop)
@@ -26,7 +26,7 @@ sealed interface VisualPresetValue {
 
     @Serializable
     data class Complete(val snapshot: CharacterProject) : VisualPresetValue {
-        override fun applyTo(project: CharacterProject) = snapshot.copy(id = project.id, name = project.name)
+        override fun applyTo(project: CharacterProject) = snapshot.copy(id = project.id, name = project.name, creationStep = project.creationStep, profile = snapshot.profile.copy(lockedTraits = project.profile.lockedTraits))
     }
 
     /** Layout presets deliberately preserve the destination output format and prompt ownership. */

@@ -23,7 +23,7 @@ class EditorRandomizer(private val random: Random = Random.Default) {
     ): CharacterProject = project.copy(
         identity = if (VariationField.Identity in locks) project.identity else project.identity.copy(
             ageBand = choose(project.identity.ageBand, AgeBand.entries),
-            genderPresentation = choose(project.identity.genderPresentation, GenderPresentation.entries),
+            genderPresentation = choose(project.identity.genderPresentation, characterGenders),
             bodyType = choose(project.identity.bodyType, BodyType.entries),
         ),
         body = if (VariationField.Body in locks) project.body else project.body.copy(
@@ -66,7 +66,7 @@ class EditorRandomizer(private val random: Random = Random.Default) {
             watercolorBehavior = choose(project.surfaceTexture.watercolorBehavior, WatercolorBehavior.entries),
             inkTextureBehavior = choose(project.surfaceTexture.inkTextureBehavior, InkTextureBehavior.entries),
         ),
-    )
+    ).preservingIdentityOf(project)
 
     fun costume(value: CostumeConfiguration, locks: Set<CostumeField>): CostumeConfiguration = value.copy(
         silhouette = if (CostumeField.Silhouette in locks) value.silhouette else choose(value.silhouette, Silhouette.entries),

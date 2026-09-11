@@ -17,6 +17,7 @@ data class IdentityConfiguration(
     val bodyType: BodyType? = null,
     val coreVibe: String = "",
     val additionalInstructions: String = "",
+    val characterName: String = "",
 )
 
 @Serializable
@@ -145,6 +146,15 @@ data class EnvironmentConfiguration(
     val depthBehavior: String = "",
     val motifOrSupportElement: String = "",
     val additionalInstructions: String = "",
+    val category: EnvironmentCategory? = null,
+    val time: String = "",
+    val weather: String = "",
+    val season: String = "",
+    val density: String = "",
+    val backgroundDetail: String = "",
+    val foreground: String = "",
+    val architecture: String = "",
+    val mood: String = "",
 )
 
 @Serializable
@@ -155,6 +165,11 @@ data class LightingConfiguration(
     val moodEffect: String = "",
     val exclusions: String = "",
     val additionalInstructions: String = "",
+    val preset: String = "",
+    val lightDirection: LightDirection? = null,
+    val quality: String = "",
+    val temperature: String = "",
+    val contrast: String = "",
 )
 
 @Serializable
@@ -190,6 +205,7 @@ data class CostumeConfiguration(
     val materialFeel: String = "matte technical fabric with canvas and leather accents",
     val exposureLevel: String = "controlled, not overly revealing",
     val customNotes: String = "",
+    val layering: String = "",
 ) {
     init { require(customization.size <= 2) { "Choose at most two customization markers." } }
 }
@@ -274,8 +290,14 @@ data class CharacterProject(
     val priorityStack: List<String> = emptyList(),
     val promptAuthoring: PromptAuthoring = PromptAuthoring(),
     val artStyle: ArtStyleConfiguration = ArtStyleConfiguration(),
+    val profile: CharacterProfile = CharacterProfile(),
+    val colorDirection: ColorDirection = ColorDirection(),
+    val effects: EffectsConfiguration = EffectsConfiguration(),
+    /** Absent in older projects: open directly in Studio. 0–9 resumes guided creation. */
+    val creationStep: Int? = null,
 ) {
     init {
+        require(creationStep == null || creationStep in 0..9)
         require(id.isNotBlank()) { "Character id cannot be blank." }
         require(name.isNotBlank()) { "Character name cannot be blank." }
         require(exclusions.hasAtMost(15)) { "Choose at most fifteen exclusions." }

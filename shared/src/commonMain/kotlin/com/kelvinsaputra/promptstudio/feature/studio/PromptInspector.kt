@@ -6,6 +6,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import com.kelvinsaputra.promptstudio.platform.copyPromptText
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.*
@@ -22,15 +24,21 @@ fun PromptInspector(project: CharacterProject, selected: StudioCategory, onCateg
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("PROMPT INSPECTOR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(!textMode, { textMode = false }, label = { Text("Building blocks") })
-            FilterChip(textMode, { textMode = true }, label = { Text("Compiled") })
+            FilterChip(!textMode, { textMode = false }, label = { Text("Structure") })
+            FilterChip(textMode, { textMode = true }, label = { Text("Prompt") })
         }
         if (manual) Text("Manual prompt active. Building blocks show your automatic draft.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            if (textMode) SelectionContainer { Text(project.effectivePrompt(), style = MaterialTheme.typography.bodyMedium) }
+            if (textMode) {
+                val clipboard = androidx.compose.ui.platform.LocalClipboard.current
+                val scope = rememberCoroutineScope()
+                var feedback by remember { mutableStateOf("") }
+                OutlinedButton(onClick = { scope.launch { try { clipboard.copyPromptText(project.effectivePrompt()); feedback = "Prompt copied" } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { feedback = "Could not copy; select the text below." } } }) { Text("Copy prompt") }
+                if (feedback.isNotBlank()) Text(feedback, style = MaterialTheme.typography.bodySmall)
+                SelectionContainer { Text(project.effectivePrompt(), style = MaterialTheme.typography.bodyMedium) }
+            }
             else {
-                SilhouettePreview(project.visualAssembly, Modifier.fillMaxWidth().height(180.dp), project.output.aspectRatio, thumbnail = true)
-                Text("Structural sketch · approximate proportions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(project.characterName, style = MaterialTheme.typography.titleLarge)
                 StudioCategory.entries.forEach { category ->
                     val sections = compiled.sections.filter { it.title in category.sections }
                     if (sections.isNotEmpty()) {

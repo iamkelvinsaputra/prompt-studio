@@ -60,7 +60,7 @@ fun CharacterComponentEditor(
     Text("Combine a few defining traits with your own description.", style = MaterialTheme.typography.bodySmall)
     OptionField("Age band", identity.ageBand, AgeBand.entries) { onChange(identity.copy(ageBand = it)) }
     TextField("Age range", identity.ageRange) { onChange(identity.copy(ageRange = it)) }
-    OptionField("Gender presentation", identity.genderPresentation, GenderPresentation.entries) { onChange(identity.copy(genderPresentation = it)) }
+    OptionField("Gender presentation", identity.genderPresentation, characterGenders) { onChange(identity.copy(genderPresentation = it)) }
     OptionField("Body type", identity.bodyType, BodyType.entries) { onChange(identity.copy(bodyType = it)) }
     TextField("Core vibe", identity.coreVibe) { onChange(identity.copy(coreVibe = it)) }
     TextField("Additional identity instructions", identity.additionalInstructions, multiline = true) { onChange(identity.copy(additionalInstructions = it)) }
@@ -177,8 +177,8 @@ fun CharacterComponentEditor(
 }
 
 @Composable private fun LightingEditor(value: LightingConfiguration, onChange: (LightingConfiguration) -> Unit) {
-    OptionField("Source / quality", value.sourceQuality, LightingSource.entries) { onChange(value.copy(sourceQuality = it)) }
-    TextField("Direction", value.direction) { onChange(value.copy(direction = it)) }
+    OptionField("Source / quality", value.sourceQuality, LightingSource.entries) { onChange(value.copy(sourceQuality = it, quality = "", preset = "")) }
+    TextField("Direction", value.direction) { onChange(value.copy(direction = it, lightDirection = null, preset = "")) }
     OptionField("Shadow softness", value.shadowSoftness, ShadowSoftness.entries) { onChange(value.copy(shadowSoftness = it)) }
     TextField("Mood effect", value.moodEffect) { onChange(value.copy(moodEffect = it)) }
     TextField("Lighting exclusions", value.exclusions) { onChange(value.copy(exclusions = it)) }

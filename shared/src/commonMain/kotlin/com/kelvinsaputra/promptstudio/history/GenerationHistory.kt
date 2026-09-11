@@ -2,6 +2,7 @@ package com.kelvinsaputra.promptstudio.history
 
 import androidx.compose.runtime.Composable
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
+import com.kelvinsaputra.promptstudio.domain.characterName
 import com.kelvinsaputra.promptstudio.generation.model.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -27,7 +28,7 @@ data class GenerationRecord(
         require(metadata.project.version == 1)
     }
     val timeLabel: String get() = Instant.fromEpochMilliseconds(createdAt).toString()
-    fun restoredInto(current: CharacterProject) = metadata.project.copy(id = current.id, name = current.name)
+    fun restoredInto(current: CharacterProject) = metadata.project.copy(id = current.id, name = current.name, identity = metadata.project.identity.copy(characterName = metadata.project.characterName), creationStep = current.creationStep)
     companion object {
         fun capture(image: GeneratedImage): GenerationRecord {
             val id = Uuid.random().toString()

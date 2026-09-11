@@ -32,14 +32,15 @@ data class CharacterLibrary(
         characters.firstOrNull { it.id == id }?.let { project(id) }
     }
 
-    fun replaceActive(project: CharacterProject): CharacterLibrary {
+    fun replaceActive(project: CharacterProject, preserveIdentityLocks: Boolean = true): CharacterLibrary {
         val base = characters.first { it.id == activeCharacterId }
         val state = activeVariants
-        val updated = if (state.activeId == PRIMARY_VARIANT) project else VariantScene.capture(base).applyTo(project)
+        val protected = if (preserveIdentityLocks) project.preservingIdentityOf(active) else project
+        val updated = if (state.activeId == PRIMARY_VARIANT) protected else VariantScene.capture(base).applyTo(protected)
         val library = copy(characters = characters.map { if (it.id == activeCharacterId) updated.copy(id = activeCharacterId) else it },
             recentProjectIds = listOf(activeCharacterId) + recentProjectIds.filterNot { it == activeCharacterId })
         return if (state.activeId == PRIMARY_VARIANT) library else library.withVariants(state.copy(
-            alternatives = state.alternatives.map { if (it.id == state.activeId) it.copy(scene = VariantScene.capture(project)) else it },
+            alternatives = state.alternatives.map { if (it.id == state.activeId) it.copy(scene = VariantScene.capture(protected)) else it },
         ))
     }
 
@@ -96,7 +97,7 @@ data class CharacterLibrary(
     /** Keep a usable empty project after deleting the final entry. */
     fun deleteActive(): CharacterLibrary {
         if (characters.size == 1) {
-            val replacement = newCharacter(nextId())
+            val replacement = newCharacter(nextId()).withStudioDefaults()
             return copy(activeCharacterId = replacement.id, characters = listOf(replacement), variants = emptyList(), recentProjectIds = emptyList())
         }
         val retained = characters.filterNot { it.id == activeCharacterId }

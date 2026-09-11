@@ -46,8 +46,14 @@ To remove artwork, delete the entry or set `image` to null. The option remains s
 
 Missing metadata, missing files, corrupt images and unsupported formats produce a neutral “Text guide” tile. The option's actual label and selection state remain visible and accessible. No broken-image icon is shown. A textual description appears below the selected group. Hover and keyboard focus reveal brief details without changing card height. Cards support Tab, Enter and Space through Compose's semantic controls and have a strong focus/selection border. No meaning depends on artwork or color alone.
 
-The 36 bundled PNGs are temporary exports of the existing structural renderer, not final illustrations. Unsupported poses, head and hand choices intentionally use text fallbacks rather than misleading stock silhouettes. The optional export utility `VisualGuideAssetsTest.exportTemporaryArtwork` writes a fresh starter collection to `shared/build/reports/studio-artwork`; it never overwrites the curated source assets.
+The original 36 bundled PNGs are temporary exports of the existing structural renderer, not final illustrations. Unsupported poses, head and hand choices intentionally use text fallbacks rather than misleading stock silhouettes. The optional export utility `VisualGuideAssetsTest.exportTemporaryArtwork` writes a fresh starter collection to `shared/build/reports/studio-artwork`; it never overwrites the curated source assets.
 
 ## Two distinct uses of silhouettes
 
 The **option library** is completely file-driven and replaceable through the registry. The **combined structural sketch** is still rendered from the selected pose, framing and placement. It is labeled approximate. That procedural renderer is also versioned in existing generation history, so replacing option artwork does not silently change historical guide reconstruction or provider reference images. A card's artwork is a visual explanation, not generated output.
+
+## Guided creation additions
+
+`lighting-direction/` contains ten PNG diagrams: front, front-left, front-right, left, right, back, back-left, back-right, top and below. Each shows a constant figure, an external light and its direction, and a lit region (or rim for backlight). `environment/` contains nine scene-category diagrams. `camera-angle/` includes five camera-position/roll diagrams, replacing the older text fallbacks. Both categories use the same registry and card decoder as pose/framing; there is no diagram drawing code in UI components.
+
+`tools/build_direction_guides.py` is an optional offline authoring utility using Pillow to recreate these starter PNGs and their registry entries. It is not part of the runtime or Gradle build. Run it only when deliberately regenerating the starter collection; replace individual PNGs/registry metadata directly for custom artwork. All added assets use PNG for Android, iOS, Desktop and Wasm compatibility. Artwork remains independent of compiler wording.

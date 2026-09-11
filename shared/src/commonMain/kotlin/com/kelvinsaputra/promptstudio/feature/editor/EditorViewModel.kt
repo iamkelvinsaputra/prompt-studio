@@ -81,7 +81,7 @@ class EditorViewModel(
         }
     }
 
-    fun restoreConfiguration(snapshot: CharacterProject) = edit { snapshot.copy(id = id, name = name) }
+    fun restoreConfiguration(snapshot: CharacterProject) = edit(preserveIdentityLocks = false) { snapshot.copy(id = id, name = name, identity = snapshot.identity.copy(characterName = snapshot.characterName), creationStep = creationStep) }
 
     fun setProject(project: CharacterProject) = edit { project.copy(id = id) }
     fun setCostume(costume: CostumeConfiguration) = edit { copy(costume = costume) }
@@ -190,11 +190,11 @@ class EditorViewModel(
         EditorModule.PriorityStack -> edit { copy(priorityStack = emptyList()) }
     }
 
-    private fun edit(transform: CharacterProject.() -> CharacterProject) {
+    private fun edit(preserveIdentityLocks: Boolean = true, transform: CharacterProject.() -> CharacterProject) {
         val before = state.value
         val next = before.project.transform()
         if (next == before.project) return
-        val library = before.library.replaceActive(next)
+        val library = before.library.replaceActive(next, preserveIdentityLocks)
         mutableState.update { it.copy(library = library) }
         save(library)
     }
