@@ -37,5 +37,5 @@ fun ExplorationActions(
         TextButton(onClick = onUnlockAll) { Text("Unlock All") }
     }
     Text("Locks protect choices from randomization. Authored text stays unchanged.", style = MaterialTheme.typography.bodySmall)
-    Text("Reset restores all demo values, including locked fields and notes. Lock selections stay unchanged.", style = MaterialTheme.typography.bodySmall)
+    Text("Reset restores this category’s starting point, including locked fields and notes.", style = MaterialTheme.typography.bodySmall)
 }

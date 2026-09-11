@@ -31,7 +31,7 @@ class GuidedBuildTest {
     @Test fun onboardingBackAndForwardPreserveSelectionsAndFinishAtSummary() {
         val editor = EditorViewModel(); editor.createProject("New", OutputType.PHONE)
         assertEquals(GuidedNavigation.newProject(), editor.state.value.guided)
-        assertEquals(AgeBand.ADULT, editor.state.value.project.identity.ageBand)
+        assertNull(editor.state.value.project.identity.ageBand) // New studio defaults make no age assumption.
         editor.setProject(editor.state.value.project.withGuideGender(GenderPresentation.MALE))
         editor.navigateGuide(editor.state.value.guided.forward())
         editor.setProject(editor.state.value.project.withGuideAge(AgeBand.YOUNG_ADULT))

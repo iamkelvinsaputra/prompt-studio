@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.PromptOption
 
@@ -20,7 +22,7 @@ fun <T> ChoiceField(label: String, value: T, options: List<T>, wording: (T) -> S
         Box {
             OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(wording(value), modifier = Modifier.weight(1f))
-                Text("▾")
+                Text("Select")
             }
             DropdownMenu(expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 320.dp)) {
                 options.forEach { option ->
@@ -44,7 +46,7 @@ fun TextField(
 ) {
     OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) },
-        modifier = modifier.fillMaxWidth(), singleLine = !multiline, minLines = if (multiline) 3 else 1,
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = label }, singleLine = !multiline, minLines = if (multiline) 3 else 1,
     )
 }
 

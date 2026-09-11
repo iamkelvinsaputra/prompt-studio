@@ -29,18 +29,18 @@ fun ProjectsScreen(state: EditorUiState, editor: EditorViewModel, onOpen: () -> 
             dismissButton = { TextButton(onClick = { target = null }) { Text("Cancel") } })
     }
     Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.safeDrawingPadding().padding(28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Prompt Studio", style = MaterialTheme.typography.headlineMedium)
-            Text("Projects", style = MaterialTheme.typography.titleLarge)
-            Text("Recent projects · saved on this device", style = MaterialTheme.typography.bodySmall)
+            Text("A place for your next character.", style = MaterialTheme.typography.headlineLarge)
+            Text("Choose a study to continue, or start with a fresh idea. Your work stays on this device.", style = MaterialTheme.typography.bodyMedium)
             Button(onClick = { creating = true }) { Text("New project") }
             state.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = editor::retrySave) { Text("Retry Save") } }
             state.message?.let { Text(it); TextButton(onClick = editor::dismissMessage) { Text("Dismiss") } }
-            LazyVerticalGrid(GridCells.Adaptive(260.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyVerticalGrid(GridCells.Adaptive(260.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 items(state.library.recentProjects, key = { it.id }) { project ->
                     OutlinedCard(onClick = { editor.selectCharacter(project.id); onOpen() }) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            SilhouettePreview(project.visualAssembly, Modifier.fillMaxWidth().height(140.dp), project.output.aspectRatio, thumbnail = true)
+                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SilhouettePreview(project.visualAssembly, Modifier.fillMaxWidth().height(220.dp), project.output.aspectRatio, thumbnail = true)
                             Text(project.name, style = MaterialTheme.typography.titleMedium)
                             val count = 1 + (state.library.variants.firstOrNull { it.projectId == project.id }?.alternatives?.size ?: 0)
                             Text("$count ${if (count == 1) "variant" else "variants"} · ${project.output.aspectRatio ?: "Choose an output"}")

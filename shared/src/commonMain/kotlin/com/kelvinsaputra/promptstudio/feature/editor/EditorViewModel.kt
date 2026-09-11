@@ -108,6 +108,19 @@ class EditorViewModel(
         val value = if (composition) VisualPresetValue.Composition.capture(library.active) else VisualPresetValue.Pose(library.active.pose)
         changeLibrary(library.copy(presets = listOf(SavedVisualPreset(library.nextId(), name.trim(), value)) + library.presets))
     }
+    fun savePreset(name: String, category: String) {
+        if (category == "pose" || category == "composition") { savePreset(name, category == "composition"); return }
+        if (name.isBlank()) return
+        val library = state.value.library
+        val p = library.active
+        val value = when (category) {
+            "style" -> VisualPresetValue.Style(p.style, p.artStyle, p.surfaceTexture)
+            "character" -> VisualPresetValue.Character(p)
+            "complete" -> VisualPresetValue.Complete(p)
+            else -> return
+        }
+        changeLibrary(library.copy(presets = listOf(SavedVisualPreset(library.nextId(), name.trim(), value)) + library.presets))
+    }
     fun applyPreset(id: String) {
         val library = state.value.library
         val preset = library.presets.firstOrNull { it.id == id } ?: return
@@ -116,7 +129,7 @@ class EditorViewModel(
     fun deletePreset(id: String) = changeLibrary(state.value.library.copy(presets = state.value.library.presets.filterNot { it.id == id }))
     fun createProject(name: String, type: OutputType) {
         if (name.isBlank()) return
-        val project = CharacterLibrary.newCharacter(state.value.library.nextId(), name.trim()).withGuidedDefaults()
+        val project = CharacterLibrary.newCharacter(state.value.library.nextId(), name.trim()).withStudioDefaults()
         val library = state.value.library.add(project.copy(output = project.output.copy(type = type)))
         changeLibrary(library.withVariants(library.activeVariants.copy(primaryName = type.name.lowercase().replaceFirstChar { it.uppercase() })))
         navigateGuide(GuidedNavigation.newProject())
@@ -190,14 +203,14 @@ class EditorViewModel(
         if (library == state.value.library) return
         val changedSelection = library.activeCharacterId != state.value.library.activeCharacterId || library.activeVariants.activeId != state.value.library.activeVariants.activeId
         mutableState.update { it.copy(library = library, guided = if (changedSelection) GuidedNavigation() else it.guided,
-            module = if (changedSelection) EditorModule.VisualBuild else it.module) }
+            module = if (library.activeCharacterId != state.value.library.activeCharacterId) EditorModule.VisualBuild else it.module) }
         save(library)
     }
 
     private fun restore(): EditorUiState = try {
         val saved = storage?.read()
         val library = when {
-            saved == null -> CharacterLibrary()
+            saved == null -> CharacterLibrary(activeCharacterId = "first-study", characters = listOf(CharacterLibrary.newCharacter("first-study", "First study").withStudioDefaults()))
             else -> runCatching { CharacterLibraryJson.decode(saved) }
                 .getOrElse { ProjectJson.decode(saved).let { CharacterLibrary(it.id, listOf(it)) } }
         }

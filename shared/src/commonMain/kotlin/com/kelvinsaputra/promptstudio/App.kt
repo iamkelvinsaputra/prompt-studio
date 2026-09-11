@@ -1,7 +1,6 @@
 package com.kelvinsaputra.promptstudio
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import com.kelvinsaputra.promptstudio.feature.studio.StudioTheme
 import androidx.compose.runtime.*
 import com.kelvinsaputra.promptstudio.credentials.rememberCredentialStore
 import com.kelvinsaputra.promptstudio.platform.*
@@ -10,7 +9,6 @@ import com.kelvinsaputra.promptstudio.generation.provider.*
 import com.kelvinsaputra.promptstudio.feature.generation.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kelvinsaputra.promptstudio.platform.rememberProjectStorage
@@ -39,10 +37,10 @@ fun App() {
     var projects by remember { mutableStateOf(true) }
     val variants = state.library.activeVariants
     val selection = remember(state.project.id, variants.activeId, variants.generation) { GenerationSelection(variants.generation, editor::setGeneration) }
-    MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF346784), secondary = Color(0xFF526575))) {
+    StudioTheme {
         if (projects) {
             ProjectsScreen(state, editor) { projects = false; editor.selectModule(com.kelvinsaputra.promptstudio.feature.editor.EditorModule.VisualBuild) }
-            return@MaterialTheme
+            return@StudioTheme
         }
         EditorScreen(
             state = state,

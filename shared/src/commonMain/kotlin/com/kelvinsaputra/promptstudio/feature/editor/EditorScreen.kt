@@ -1,21 +1,21 @@
 package com.kelvinsaputra.promptstudio.feature.editor
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kelvinsaputra.promptstudio.domain.GuidedNavigation
-import com.kelvinsaputra.promptstudio.domain.CharacterProject
-import com.kelvinsaputra.promptstudio.domain.PromptMode
-import com.kelvinsaputra.promptstudio.prompt.useAutomaticPrompt
+import com.kelvinsaputra.promptstudio.domain.*
+import com.kelvinsaputra.promptstudio.feature.studio.*
+import com.kelvinsaputra.promptstudio.guide.GuideRenderSpec
 import com.kelvinsaputra.promptstudio.platform.copyPromptText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -53,319 +53,173 @@ fun EditorScreen(
     useVisualGuide: Boolean = true,
     onVisualGuideChange: (Boolean) -> Unit = {},
 ) {
+    val project = state.project
+    val category = StudioCategory.from(state.module)
     val sectionState = rememberSaveableStateHolder()
-    val prompt = remember(state.project) { state.effectivePrompt }
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    var projectMenu by remember { mutableStateOf(false) }
-    var characterMenu by remember { mutableStateOf(false) }
-    var renameDialog by remember { mutableStateOf(false) }
-    var deleteDialog by remember { mutableStateOf(false) }
-    var generating by remember(state.project.id, state.library.activeVariants.activeId) { mutableStateOf(false) }
-    LaunchedEffect(state.message) {
-        state.message?.let { snackbar.showSnackbar(it); onDismissMessage() }
-    }
-    val manual = state.project.promptAuthoring.mode == PromptMode.Manual
-    val validOutput = manual || state.project.output.aspectRatio != null
-    val visibleModules = if (state.mode == EditorMode.Quick) quickModules else EditorModule.entries.filter { it != EditorModule.Prompt }
-
-    if (renameDialog) NameDialog(state.project.name, onDismiss = { renameDialog = false }) {
-        onRenameCharacter(it); renameDialog = false
-    }
-    if (deleteDialog) {
-        AlertDialog(
-            onDismissRequest = { deleteDialog = false },
-            title = { Text("Delete ${state.project.name}?") },
-            text = { Text("Remove this project and its variants. Saved generations remain in history. The last project is replaced with a blank project.") },
-            confirmButton = { TextButton(onClick = { onDeleteCharacter(); deleteDialog = false }) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancel") } },
-        )
-    }
-
-    // Visual Build has its own focused shell; detailed authoring stays available from Summary.
-    if (state.module == EditorModule.VisualBuild) {
-        Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).safeDrawingPadding().imePadding().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    onProjects?.let { TextButton(onClick = it) { Text("← Projects") } }
-                    Text(state.project.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    Box {
-                        TextButton(onClick = { projectMenu = true }) { Text("File") }
-                        DropdownMenu(projectMenu, onDismissRequest = { projectMenu = false }) {
-                            DropdownMenuItem(text = { Text("Import Character") }, onClick = { projectMenu = false; onImport() })
-                            DropdownMenuItem(text = { Text("Export Character") }, onClick = { projectMenu = false; onExport() })
-                            DropdownMenuItem(text = { Text("Copy prompt") }, onClick = {
-                                projectMenu = false
-                                scope.launch {
-                                    try { clipboard.copyPromptText(prompt); snackbar.showSnackbar("Prompt copied") }
-                                    catch (e: CancellationException) { throw e }
-                                    catch (_: Exception) { snackbar.showSnackbar("Could not copy prompt") }
-                                }
-                            })
-                        }
-                    }
-                }
-                state.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = onRetrySave) { Text("Retry Save") } }
-                if (generating) {
-                    TextButton(onClick = { generating = false }) { Text("← Summary") }
-                    Box(Modifier.weight(1f)) { generationContent() }
-                } else GuidedVisualBuild(state.project, state.guided, onProject, onGuideNavigation,
-                    onGenerate = { generating = true }, onAdvanced = { onMode(EditorMode.Advanced); onModule(EditorModule.Identity) },
-                    modifier = Modifier.weight(1f).fillMaxWidth(), useVisualGuide = useVisualGuide, onVisualGuide = onVisualGuideChange,
-                    variantContent = variantContent, presetContent = presetContent)
-            }
+    var menu by remember { mutableStateOf(false) }
+    var rename by remember { mutableStateOf(false) }
+    var delete by remember { mutableStateOf(false) }
+    var reset by remember { mutableStateOf(false) }
+    var view by remember(project.id, state.library.activeVariants.activeId) { mutableStateOf("editor") }
+    var library by remember { mutableStateOf(false) }
+    val choose: (StudioCategory) -> Unit = { onModule(it.modules.first()); view = "editor" }
+    val canCopy = state.effectivePrompt.isNotBlank() && (project.promptAuthoring.mode == PromptMode.Manual || project.output.aspectRatio != null)
+    val copy: () -> Unit = {
+        scope.launch {
+            try { clipboard.copyPromptText(state.effectivePrompt); snackbar.showSnackbar("Prompt copied") }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { snackbar.showSnackbar("Could not copy. Select the compiled prompt to copy it manually.") }
         }
-        return
     }
-
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).safeDrawingPadding().imePadding().padding(16.dp)) {
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.fillMaxWidth()) {
-                    Text("Prompt Studio", style = MaterialTheme.typography.headlineSmall)
-                    Text("Visual prompt authoring", style = MaterialTheme.typography.bodySmall)
-                }
-                onProjects?.let { TextButton(onClick = it) { Text("← Projects") } }
-                Box {
-                    TextButton(onClick = { characterMenu = true }) { Text("${state.project.name} ▾", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp)) }
-                    CharacterMenu(
-                        expanded = characterMenu, state = state,
-                        onDismiss = { characterMenu = false }, onSelect = { onSelectCharacter(it); characterMenu = false },
-                        onNew = { onNewCharacter(); characterMenu = false },
-                        onRename = { renameDialog = true; characterMenu = false },
-                        onDuplicate = { onDuplicateCharacter(); characterMenu = false },
-                        onDelete = { deleteDialog = true; characterMenu = false },
-                    )
-                }
-                Box {
-                    TextButton(onClick = { projectMenu = true }) { Text("File ▾") }
-                    DropdownMenu(projectMenu, onDismissRequest = { projectMenu = false }) {
-                        DropdownMenuItem(text = { Text("Import Character") }, onClick = { projectMenu = false; onImport() })
-                        DropdownMenuItem(text = { Text("Export Character") }, onClick = { projectMenu = false; onExport() })
-                    }
-                }
-                Button(enabled = validOutput && prompt.isNotBlank(), onClick = {
-                    scope.launch {
-                        try {
-                            clipboard.copyPromptText(prompt)
-                            snackbar.showSnackbar("Prompt copied")
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Exception) {
-                            snackbar.showSnackbar("Could not copy. Try again or select the preview text.")
+    LaunchedEffect(state.message) { state.message?.let { snackbar.showSnackbar(it); onDismissMessage() } }
+    if (rename) SimpleNameDialog("Rename project", project.name, { rename = false }) { onRenameCharacter(it); rename = false }
+    if (delete) AlertDialog(onDismissRequest = { delete = false }, title = { Text("Delete ${project.name}?") },
+        text = { Text("This removes the project and its variants. Saved generations remain in history.") },
+        confirmButton = { TextButton(onClick = { onDeleteCharacter(); delete = false }) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = { delete = false }) { Text("Cancel") } })
+    if (reset) AlertDialog(onDismissRequest = { reset = false }, title = { Text("Reset this configuration?") },
+        text = { Text("Restore a neutral starting point for this variant. Save a preset first if you want to reuse your current choices.") },
+        confirmButton = { TextButton(onClick = { onProject(CharacterLibrary.newCharacter(project.id, project.name).withStudioDefaults()); reset = false }) { Text("Reset all") } },
+        dismissButton = { TextButton(onClick = { reset = false }) { Text("Cancel") } })
+    VisualGuideAssets {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = 76.dp)) }) { padding ->
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).safeDrawingPadding().imePadding()) {
+            val desktop = maxWidth >= 1180.dp
+            val rail = maxWidth >= 760.dp
+            val compact = maxWidth < 600.dp
+            Column(Modifier.fillMaxSize()) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = if (compact) 16.dp else 24.dp, vertical = 12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            onProjects?.let { TextButton(onClick = it) { Text("Projects") } }
+                            Column(Modifier.weight(1f)) {
+                                Text("PROMPT STUDIO", style = MaterialTheme.typography.labelSmall)
+                                Text(project.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+                            }
+                            Box {
+                                TextButton(onClick = { menu = true }) { Text("Project") }
+                                DropdownMenu(menu, { menu = false }) {
+                                    state.library.characters.forEach { character -> DropdownMenuItem(text = { Text(character.name) }, onClick = { onSelectCharacter(character.id); menu = false }) }
+                                    HorizontalDivider()
+                                    DropdownMenuItem(text = { Text("New project") }, onClick = { onNewCharacter(); menu = false })
+                                    DropdownMenuItem(text = { Text("Rename project") }, onClick = { rename = true; menu = false })
+                                    DropdownMenuItem(text = { Text("Duplicate project") }, onClick = { onDuplicateCharacter(); menu = false })
+                                    DropdownMenuItem(text = { Text("Import Character") }, onClick = { onImport(); menu = false })
+                                    DropdownMenuItem(text = { Text("Export Character") }, onClick = { onExport(); menu = false })
+                                    DropdownMenuItem(text = { Text("Reset all") }, onClick = { reset = true; menu = false })
+                                    DropdownMenuItem(text = { Text("Delete project") }, onClick = { delete = true; menu = false })
+                                }
+                            }
+                            if (!compact) {
+                                OutlinedButton(onClick = copy, enabled = canCopy) { Text("Copy prompt") }
+                                Button(onClick = { view = "generate" }) { Text("Generate") }
+                            }
                         }
+                        if (project.promptAuthoring.mode != PromptMode.Manual && project.output.aspectRatio == null) Text("Choose an aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        state.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = onRetrySave) { Text("Retry Save") } }
                     }
-                }) { Text("Copy") }
-                Button(onClick = { generating = true }) { Text("Generate") }
-            }
-            variantContent()
-            state.saveError?.let { error ->
-                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = onRetrySave) { Text("Retry Save") }
-            }
-            if (!validOutput) Text("Enter an aspect ratio in Output before copying.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            if (manual) {
-                Text("Manual prompt active · Visual edits update only the automatic draft.", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { onProject(state.project.useAutomaticPrompt()) }) { Text("Use automatic prompt") }
-            }
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = { onModule(EditorModule.VisualBuild) }) { Text("← Summary") }
-            if (!generating) ModeAndVariationControls(state, onMode, onVariationLocks, onRandomizeUnlocked)
-            Spacer(Modifier.height(12.dp))
-
-            BoxWithConstraints(Modifier.weight(1f)) {
-                if (generating) {
-                    Column(Modifier.fillMaxSize()) {
-                        TextButton(onClick = { generating = false }) { Text("← Back to editor") }
-                        generationContent()
-                    }
-                    return@BoxWithConstraints
                 }
-                val showLibraryPane = maxWidth >= 1080.dp
-                val showModulesPane = maxWidth >= 820.dp
-                val showPreview = maxWidth >= 1200.dp && state.module != EditorModule.Prompt && state.module != EditorModule.VisualBuild
-                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    if (showLibraryPane) {
-                        CharacterLibraryPane(state, onSelectCharacter, onNewCharacter, { renameDialog = true }, onDuplicateCharacter, { deleteDialog = true })
-                        VerticalDivider()
+                HorizontalDivider()
+                if (view == "generate") {
+                    TextButton(onClick = { view = "editor" }) { Text("Back to studio") }
+                    val supported = GuideRenderSpec.from(project.visualAssembly, project.output.aspectRatio) != null
+                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(useVisualGuide && supported, onVisualGuideChange, enabled = supported)
+                        Text(if (supported) "Include structural guide for supported models" else "Custom configuration · text only", style = MaterialTheme.typography.bodySmall)
                     }
-                    if (showModulesPane) {
-                        ModuleNavigation(state.mode, state.module, visibleModules, onModule, Modifier.width(168.dp))
-                        VerticalDivider()
+                    Box(Modifier.weight(1f).padding(16.dp)) { generationContent() }
+                } else {
+                    if (!rail && view == "editor") Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StudioCategory.entries.forEach { item -> FilterChip(category == item, { choose(item) }, label = { Text(item.title) }) }
                     }
-                    Column(Modifier.weight(1f)) {
-                        if (!showModulesPane) {
-                            ModuleChipBar(state.module, visibleModules, onModule)
-                            Spacer(Modifier.height(10.dp))
-                        }
-                        if (state.module == EditorModule.Prompt) {
-                            PromptPreview(prompt, manual, Modifier.fillMaxSize(), generationContent)
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                        if (rail) StudioSidebar(category, state, choose, { library = !library }, Modifier.width(210.dp).fillMaxHeight())
+                        if (view == "prompt") {
+                            Column(Modifier.weight(1f).padding(20.dp)) {
+                                TextButton(onClick = { view = "editor" }) { Text("Back to studio") }
+                                PromptInspector(project, category, choose, Modifier.weight(1f))
+                            }
                         } else {
-                            sectionState.SaveableStateProvider(state.module.name) {
-                                Column(
-                                    Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text(state.module.title, style = MaterialTheme.typography.titleLarge)
-                                        if (state.module != EditorModule.Style) TextButton(onClick = { onResetModule(state.module) }) { Text("Reset") }
+                            sectionState.SaveableStateProvider("${project.id}-${category.name}") {
+                                Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(if (compact) 18.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Text("${(category.ordinal + 1).toString().padStart(2, '0')} / CREATIVE DIRECTION", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                        if (!rail) TextButton(onClick = { library = !library }) { Text("Presets & variants") }
                                     }
-                                    CharacterComponentEditor(
-                                        state.module, state.project, onProject, state.costumeLocks, onCostumeLocks,
-                                        state.poseLocks, onPoseLocks, onRandomizeCostume, onRandomizePose, onResetCostume, onResetPose,
-                                    )
-                                    if (state.module == EditorModule.VisualBuild) presetContent()
-                                    TextButton(onClick = { onModule(EditorModule.Prompt) }) { Text(if (manual) "Inspect manual prompt →" else "Compiled prompt →") }
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text(category.title, style = MaterialTheme.typography.headlineLarge)
+                                        Text(category.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TextButton(onClick = { onProject(project.resetStudioCategory(category)) }) { Text("Reset category") }
+                                        if (category == StudioCategory.Pose) TextButton(onClick = onRandomizePose, enabled = VariationField.Pose !in state.variationLocks) { Text("Randomize pose") }
+                                        if (category == StudioCategory.Appearance) TextButton(onClick = onRandomizeCostume, enabled = VariationField.Costume !in state.variationLocks) { Text("Randomize outfit") }
+                                        if (category == StudioCategory.Camera || category == StudioCategory.Color) TextButton(enabled = (if (category == StudioCategory.Camera) VariationField.Composition else VariationField.AccentColor) !in state.variationLocks, onClick = { onProject(project.randomizeStudioCategory(category)) }) { Text("Randomize ${if (category == StudioCategory.Camera) "camera" else "colors"}") }
+                                    }
+                                    if (library) {
+                                        variantContent(); presetContent()
+                                        AdvancedSection("Explore unlocked choices") {
+                                            Text("Locks protect categories when exploring. Your custom wording stays in place.", style = MaterialTheme.typography.bodySmall)
+                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                VariationField.entries.forEach { field -> FilterChip(field in state.variationLocks,
+                                                    { onVariationLocks(if (field in state.variationLocks) state.variationLocks - field else state.variationLocks + field) },
+                                                    label = { Text("${if (field in state.variationLocks) "Locked · " else ""}${field.name}") }) }
+                                            }
+                                            OutlinedButton(onClick = onRandomizeUnlocked) { Text("Randomize unlocked") }
+                                        }
+                                        HorizontalDivider()
+                                    }
+                                    if (project.promptAuthoring.mode == PromptMode.Manual) Text("Manual prompt active. Your choices update the automatic draft; switch back in Output to use them.", color = MaterialTheme.colorScheme.primary)
+                                    CategoryPanel(category, state, onProject, onCostumeLocks, onPoseLocks, onRandomizeCostume, onRandomizePose, onResetCostume, onResetPose)
+                                    if (category.ordinal < StudioCategory.entries.lastIndex) OutlinedButton(onClick = { choose(StudioCategory.entries[category.ordinal + 1]) }) { Text("Next · ${StudioCategory.entries[category.ordinal + 1].title}") }
+                                    Spacer(Modifier.height(16.dp))
                                 }
                             }
                         }
+                        if (desktop && view == "editor") {
+                            VerticalDivider()
+                            Surface(Modifier.width(336.dp).fillMaxHeight(), color = MaterialTheme.colorScheme.surface) {
+                                PromptInspector(project, category, choose, Modifier.padding(20.dp))
+                            }
+                        }
                     }
-                    if (showPreview) {
-                        VerticalDivider()
-                        PromptPreview(prompt, manual, Modifier.weight(1f).fillMaxHeight(), generationContent)
+                    if (!desktop) Surface(shadowElevation = 4.dp) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { view = if (view == "prompt") "editor" else "prompt" }, modifier = Modifier.weight(1f)) { Text(if (view == "prompt") "Edit" else "Inspect prompt") }
+                            if (compact) {
+                                OutlinedButton(onClick = copy, enabled = canCopy) { Text("Copy") }
+                                Button(onClick = { view = "generate" }) { Text("Generate") }
+                            }
+                        }
                     }
                 }
             }
         }
     }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ModeAndVariationControls(
-    state: EditorUiState,
-    onMode: (EditorMode) -> Unit,
-    onLocks: (Set<VariationField>) -> Unit,
-    onRandomize: () -> Unit,
-) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(state.mode == EditorMode.Quick, { onMode(EditorMode.Quick) }, label = { Text("Quick") })
-        FilterChip(state.mode == EditorMode.Advanced, { onMode(EditorMode.Advanced) }, label = { Text("All sections") })
-        if (state.mode == EditorMode.Advanced) Button(onClick = onRandomize) { Text("Randomize Unlocked") }
-    }
-    if (state.mode != EditorMode.Advanced) return
-    var showLocks by remember { mutableStateOf(false) }
-    TextButton(onClick = { showLocks = !showLocks }) { Text("${if (showLocks) "Hide" else "Show"} variation locks · ${state.variationLocks.size} locked") }
-    if (!showLocks) return
-    Text("Variation locks protect structured character choices; authored text is always preserved.", style = MaterialTheme.typography.bodySmall)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        VariationField.entries.forEach { field ->
-            FilterChip(
-                selected = field in state.variationLocks,
-                onClick = { onLocks(if (field in state.variationLocks) state.variationLocks - field else state.variationLocks + field) },
-                label = { Text("${if (field in state.variationLocks) "🔒 " else ""}${field.label()}") },
-            )
-        }
     }
 }
 
-private fun VariationField.label() = when (this) {
-    VariationField.Identity -> "Identity"; VariationField.Body -> "Body"; VariationField.Face -> "Face"
-    VariationField.Expression -> "Expression"; VariationField.Hair -> "Hair"; VariationField.Costume -> "Costume"
-    VariationField.Power -> "Power"; VariationField.Pose -> "Pose"
-    VariationField.Gaze -> "Gaze"; VariationField.Composition -> "Composition"; VariationField.Environment -> "Environment"
-    VariationField.Lighting -> "Lighting"; VariationField.AccentColor -> "Accent"; VariationField.SurfaceTexture -> "Surface"
-    VariationField.Output -> "Output"
-}
-
 @Composable
-private fun ModuleNavigation(mode: EditorMode, selected: EditorModule, modules: List<EditorModule>, onModule: (EditorModule) -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (mode == EditorMode.Advanced) {
-            modules.groupBy { it.group }.forEach { (group, grouped) ->
-                Text(group, style = MaterialTheme.typography.labelSmall)
-                grouped.forEach { ModuleChip(it, selected, onModule, Modifier.fillMaxWidth()) }
+private fun StudioSidebar(selected: StudioCategory, state: EditorUiState, onSelect: (StudioCategory) -> Unit, onLibrary: () -> Unit, modifier: Modifier) {
+    Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("YOUR BUILDING BLOCKS", Modifier.padding(8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(StudioCategory.entries) { category ->
+                Surface(onClick = { onSelect(category) }, shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth().semantics { this.selected = category == selected },
+                    color = if (category == selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.background) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(category.title, style = MaterialTheme.typography.labelLarge, color = if (category == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                        Text(category.summary(state.project), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
-        } else {
-            Text("QUICK FILL", style = MaterialTheme.typography.labelSmall)
-            modules.forEach { ModuleChip(it, selected, onModule, Modifier.fillMaxWidth()) }
-        }
-        Text("PREVIEW", style = MaterialTheme.typography.labelSmall)
-        ModuleChip(EditorModule.Prompt, selected, onModule, Modifier.fillMaxWidth())
-    }
-}
-
-@Composable private fun ModuleChip(module: EditorModule, selected: EditorModule, onModule: (EditorModule) -> Unit, modifier: Modifier = Modifier) =
-    FilterChip(selected == module, { onModule(module) }, label = { Text(module.title) }, modifier = modifier)
-
-@Composable
-private fun ModuleChipBar(selected: EditorModule, modules: List<EditorModule>, onModule: (EditorModule) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        modules.forEach { ModuleChip(it, selected, onModule) }
-        ModuleChip(EditorModule.Prompt, selected, onModule)
-    }
-}
-
-@Composable
-private fun CharacterMenu(
-    expanded: Boolean, state: EditorUiState, onDismiss: () -> Unit, onSelect: (String) -> Unit,
-    onNew: () -> Unit, onRename: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit,
-) {
-    DropdownMenu(expanded, onDismissRequest = onDismiss) {
-        state.library.characters.forEach { character ->
-            DropdownMenuItem(text = { Text(if (character.id == state.library.activeCharacterId) "✓ ${character.name}" else character.name) }, onClick = { onSelect(character.id) })
         }
         HorizontalDivider()
-        DropdownMenuItem(text = { Text("New Project") }, onClick = onNew)
-        DropdownMenuItem(text = { Text("Rename Project") }, onClick = onRename)
-        DropdownMenuItem(text = { Text("Duplicate Project") }, onClick = onDuplicate)
-        DropdownMenuItem(text = { Text("Delete Project") }, onClick = onDelete)
-    }
-}
-
-@Composable
-private fun CharacterLibraryPane(
-    state: EditorUiState, onSelect: (String) -> Unit, onNew: () -> Unit, onRename: () -> Unit,
-    onDuplicate: () -> Unit, onDelete: () -> Unit,
-) {
-    Column(Modifier.width(180.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("PROJECTS", style = MaterialTheme.typography.labelSmall)
-        state.library.characters.forEach { character ->
-            FilterChip(character.id == state.library.activeCharacterId, { onSelect(character.id) }, label = { Text(character.name) }, modifier = Modifier.fillMaxWidth())
-        }
-        Button(onClick = onNew, modifier = Modifier.fillMaxWidth()) { Text("+ New") }
-        TextButton(onClick = onRename, modifier = Modifier.fillMaxWidth()) { Text("Rename") }
-        TextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) { Text("Duplicate") }
-        TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) { Text("Delete") }
-    }
-}
-
-@Composable
-private fun NameDialog(initial: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var name by remember(initial) { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onDismiss, title = { Text("Rename Project") },
-        text = { OutlinedTextField(name, { name = it }, label = { Text("Project name") }, singleLine = true) },
-        confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun PromptPreview(prompt: String, manual: Boolean, modifier: Modifier = Modifier, generationContent: @Composable () -> Unit) {
-    var generate by remember { mutableStateOf(false) }
-    Column(modifier) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(!generate, { generate = false }, label = { Text("Prompt") })
-            FilterChip(generate, { generate = true }, label = { Text("Generate Image") })
-        }
-        if (generate) { generationContent(); return@Column }
-        PromptText(prompt, manual, Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun PromptText(prompt: String, manual: Boolean, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (manual) "Manual prompt" else "Compiled prompt", style = MaterialTheme.typography.titleLarge)
-        Text("${if (manual) "Your manual text is active" else "Updates from your choices and adjustment"} · ${prompt.length} characters", style = MaterialTheme.typography.bodySmall)
-        Surface(Modifier.weight(1f).fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium) {
-            SelectionContainer(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-                Text(prompt, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
-            }
-        }
+        TextButton(onClick = onLibrary, modifier = Modifier.fillMaxWidth()) { Text("Presets & variants") }
+        Text("Made of small decisions.", Modifier.padding(8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -100,6 +100,8 @@ enum class GazeIntensity(override val wording: String) : PromptOption {
 
 @Serializable
 enum class EnvironmentAbstraction(override val wording: String) : PromptOption {
+    NONE("no background"),
+    FULL("full environment"),
     MINIMAL("minimal"),
     ATMOSPHERIC("atmospheric"),
     LAYERED_ABSTRACT("layered abstract"),
@@ -349,4 +351,13 @@ enum class Framing(override val wording: String) : PromptOption {
     WAIST_UP("waist-up"),
     CLOSE_UP("close-up"),
     BUST_UP("bust-up")
+}
+
+@Serializable
+enum class CameraAngle(val label: String, override val wording: String) : PromptOption {
+    EYE_LEVEL("Eye level", "camera at the subject’s eye level"),
+    LOW("Low angle", "camera positioned below the subject, looking upward"),
+    HIGH("High angle", "camera positioned above the subject, looking downward"),
+    OVERHEAD("Overhead", "camera directly overhead, looking down"),
+    DUTCH("Dutch angle", "camera tilted to create a diagonal horizon"),
 }

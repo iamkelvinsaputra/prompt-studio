@@ -11,6 +11,24 @@ sealed interface VisualPresetValue {
         override fun applyTo(project: CharacterProject) = project.copy(pose = pose)
     }
 
+    @Serializable
+    data class Style(val style: ArtStylePreset, val artStyle: ArtStyleConfiguration, val texture: SurfaceTextureConfiguration) : VisualPresetValue {
+        override fun applyTo(project: CharacterProject) = project.copy(style = style, artStyle = artStyle, surfaceTexture = texture)
+    }
+
+    @Serializable
+    data class Character(val snapshot: CharacterProject) : VisualPresetValue {
+        override fun applyTo(project: CharacterProject) = project.copy(subject = snapshot.subject, identity = snapshot.identity,
+            role = snapshot.role, coreVisualThesis = snapshot.coreVisualThesis, personality = snapshot.personality,
+            contradiction = snapshot.contradiction, body = snapshot.body, face = snapshot.face, expression = snapshot.expression,
+            hair = snapshot.hair, costume = snapshot.costume, accessories = snapshot.accessories, shapeLanguage = snapshot.shapeLanguage, prop = snapshot.prop)
+    }
+
+    @Serializable
+    data class Complete(val snapshot: CharacterProject) : VisualPresetValue {
+        override fun applyTo(project: CharacterProject) = snapshot.copy(id = project.id, name = project.name)
+    }
+
     /** Layout presets deliberately preserve the destination output format and prompt ownership. */
     @Serializable
     data class Composition(
@@ -36,5 +54,5 @@ sealed interface VisualPresetValue {
 @Serializable
 data class SavedVisualPreset(val id: String, val name: String, val value: VisualPresetValue) {
     init { require(id.isNotBlank() && name.isNotBlank()) }
-    val category get() = when (value) { is VisualPresetValue.Pose -> "Pose"; is VisualPresetValue.Composition -> "Composition" }
+    val category get() = when (value) { is VisualPresetValue.Pose -> "Pose"; is VisualPresetValue.Composition -> "Composition"; is VisualPresetValue.Style -> "Style"; is VisualPresetValue.Character -> "Character"; is VisualPresetValue.Complete -> "Complete" }
 }

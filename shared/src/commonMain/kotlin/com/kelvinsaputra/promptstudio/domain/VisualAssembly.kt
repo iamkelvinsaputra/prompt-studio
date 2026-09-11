@@ -3,9 +3,14 @@ package com.kelvinsaputra.promptstudio.domain
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class GuideFacing(val label: String) { FRONT("Front"), THREE_QUARTER("3/4 view"), SIDE("Side") }
+enum class GuideFacing(val label: String, val wording: String) {
+    FRONT("Front", "body facing the viewer"), THREE_QUARTER("3/4 view", "body turned three-quarters toward the viewer"), SIDE("Side", "body in side profile")
+}
 @Serializable
-enum class GuideProp(val label: String) { NONE("No prop"), DOWN("Held down"), SHOULDER("On shoulder") }
+enum class GuideProp(val label: String, val wording: String) {
+    NONE("No prop", "no prop held in the pose"), DOWN("Held down", "hold the primary prop down beside the body"),
+    SHOULDER("On shoulder", "rest the primary prop on the shoulder, with one hand supporting it")
+}
 
 enum class VisualPose(val label: String, val base: BasePose) {
     NEUTRAL("Neutral", BasePose.RELAXED_STANDING),

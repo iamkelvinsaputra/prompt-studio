@@ -51,7 +51,7 @@ class PromptCompiler {
 
     private fun bullet(label: String, value: String?): String? = clean(value)?.let { "- $label: $it" }
     private fun optionBullet(label: String, value: PromptOption?): String? = bullet(label, value?.wording)
-    private fun listBullets(values: List<String>): String = values.mapNotNull(::clean).joinToString("\n") { "- $it" }
+    private fun listBullets(values: List<String>): String = values.mapNotNull(::clean).distinct().joinToString("\n") { "- $it" }
     private fun additional(value: String): String? = subsection("Additional instructions:", clean(value).orEmpty())
 
     // Normalize only authored sentence endings; preserve punctuation inside the text.
@@ -191,7 +191,7 @@ class PromptCompiler {
 
     private fun composition(output: OutputConfiguration, value: CompositionConfiguration, visual: VisualAssemblyState): String = listOfNotNull(
         optionBullet("framing", visual.framing), bullet("figure placement", visual.figurePlacement),
-        bullet("visual balance", value.guidePreset?.wording),
+        bullet("visual balance", value.guidePreset?.wording), optionBullet("camera angle", value.cameraAngle),
         bullet("directional flow", value.directionalFlow), bullet("negative space", output.negativeSpace),
         bullet("detail concentration", value.detailConcentration), bullet("readability priority", value.readabilityPriority),
         bullet("safe area", output.safeArea),
@@ -226,17 +226,9 @@ class PromptCompiler {
     private fun priorityBlock(values: List<String>): String = values.mapNotNull(::clean)
         .mapIndexed { index, value -> "${index + 1}. $value" }.joinToString("\n")
 
-    private fun facingWording(value: GuideFacing): String = when (value) {
-        GuideFacing.FRONT -> "body facing the viewer"
-        GuideFacing.THREE_QUARTER -> "body turned three-quarters toward the viewer"
-        GuideFacing.SIDE -> "body in side profile"
-    }
+    private fun facingWording(value: GuideFacing): String = value.wording
 
-    private fun propPlacementWording(value: GuideProp): String = when (value) {
-        GuideProp.NONE -> "no prop held in the pose"
-        GuideProp.DOWN -> "hold the primary prop down beside the body"
-        GuideProp.SHOULDER -> "rest the primary prop on the shoulder, with one hand supporting it"
-    }
+    private fun propPlacementWording(value: GuideProp): String = value.wording
 
     private fun adjustmentBlock(text: String): String = clean(text)?.let {
         "Apply this adjustment to the instructions above; where they conflict, this adjustment takes precedence:\n$it"

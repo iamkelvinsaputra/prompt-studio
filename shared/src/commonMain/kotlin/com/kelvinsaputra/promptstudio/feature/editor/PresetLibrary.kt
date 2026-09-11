@@ -11,12 +11,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PresetLibrary(state: EditorUiState, editor: EditorViewModel) {
     var saving by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<SavedVisualPreset?>(null) }
     saving?.let { category ->
-        SimpleNameDialog("Save $category preset", "", { saving = null }) { editor.savePreset(it, category == "composition"); saving = null }
+        SimpleNameDialog("Save $category preset", "", { saving = null }) { editor.savePreset(it, category); saving = null }
     }
     deleting?.let { preset ->
         AlertDialog(onDismissRequest = { deleting = null }, title = { Text("Remove ${preset.name}?") },
@@ -26,11 +27,14 @@ fun PresetLibrary(state: EditorUiState, editor: EditorViewModel) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Your presets", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { saving = "pose" }) { Text("Save pose") }
             TextButton(onClick = { saving = "composition" }) { Text("Save composition") }
+            TextButton(onClick = { saving = "character" }) { Text("Save character") }
+            TextButton(onClick = { saving = "style" }) { Text("Save style") }
+            TextButton(onClick = { saving = "complete" }) { Text("Save complete") }
         }
-        if (state.library.presets.isEmpty()) Text("Save a pose or composition to reuse in any project.", style = MaterialTheme.typography.bodySmall)
+        if (state.library.presets.isEmpty()) Text("Save a building block or a complete configuration to reuse in any project.", style = MaterialTheme.typography.bodySmall)
         else {
             Text("Recently saved or used", style = MaterialTheme.typography.bodySmall)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

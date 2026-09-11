@@ -135,6 +135,7 @@ data class CompositionConfiguration(
     val readabilityPriority: String = "",
     val additionalInstructions: String = "",
     val guidePreset: GuideComposition? = null,
+    val cameraAngle: CameraAngle? = null,
 )
 
 @Serializable

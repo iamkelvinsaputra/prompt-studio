@@ -10,6 +10,7 @@ import androidx.compose.ui.test.v2.runDesktopComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kelvinsaputra.promptstudio.domain.*
 import com.kelvinsaputra.promptstudio.feature.editor.*
+import com.kelvinsaputra.promptstudio.feature.studio.*
 import com.kelvinsaputra.promptstudio.prompt.*
 import java.io.File
 import javax.imageio.ImageIO
@@ -18,19 +19,19 @@ import kotlin.test.*
 
 @OptIn(ExperimentalTestApi::class)
 class ProductUiTest {
-    @Test fun mobileProjectVariantPresetAndGenerateJourney() = journey(360, 780)
-    @Test fun desktopProjectVariantPresetAndGenerateJourney() = journey(1280, 900)
+    @Test fun phoneStudioJourney() = journey(390, 844)
+    @Test fun desktopStudioJourney() = journey(1440, 1000)
+    @Test fun tabletStudioJourney() = journey(850, 1000)
 
     private fun journey(width: Int, height: Int) = runDesktopComposeUiTest(width = width, height = height) {
         val editor = EditorViewModel()
-        val reports = File("build/reports/guided-build").apply { mkdirs() }
+        val reports = File("build/reports/studio").apply { mkdirs() }
         fun capture(name: String) { onRoot().captureToImage().let { ImageIO.write(it.toAwtImage(), "png", File(reports, "$name-$width.png")) } }
-        fun choose(label: String) { onNodeWithContentDescription(label, substring = false).performScrollTo().performClick() }
-        fun next() { onNodeWithText("Continue", substring = false).assertIsDisplayed().performClick() }
+        fun category(value: StudioCategory) { runOnIdle { editor.selectModule(value.modules.first()) }; waitForIdle() }
         setContent {
             val state by editor.state.collectAsState()
             var home by remember { mutableStateOf(true) }
-            MaterialTheme { Surface(Modifier.requiredSize(width.dp, height.dp)) {
+            StudioTheme { Surface(Modifier.requiredSize(width.dp, height.dp)) {
                 if (home) ProjectsScreen(state, editor) { home = false }
                 else EditorScreen(state, {}, {}, editor::dismissMessage, editor::retrySave,
                     editor::selectModule, editor::setMode, editor::setProject, editor::setCostumeLocks,
@@ -38,89 +39,78 @@ class ProductUiTest {
                     editor::randomizeUnlocked, editor::resetCostume, editor::resetPose, editor::resetModule,
                     editor::selectCharacter, editor::newCharacter, editor::renameCharacter, editor::duplicateCharacter, editor::deleteCharacter,
                     generationContent = { Text("Generation surface") }, onProjects = { home = true },
-                    variantContent = { VariantBar(state, editor) }, presetContent = { PresetLibrary(state, editor) },
-                    onGuideNavigation = editor::navigateGuide,
-                    useVisualGuide = state.library.activeVariants.generation.useVisualGuide,
-                    onVisualGuideChange = { editor.setGeneration(state.library.activeVariants.generation.copy(useVisualGuide = it)) })
+                    variantContent = { VariantBar(state, editor) }, presetContent = { PresetLibrary(state, editor) })
             } }
         }
+        capture("projects")
         onNodeWithText("New project").performClick()
-        onNode(hasSetTextAction()).performTextReplacement("Journey")
+        onNode(hasSetTextAction()).performTextReplacement("Character study")
         onNodeWithText("Create").performClick()
-        onNodeWithText("Step 1 of 8").assertIsDisplayed()
-        onNodeWithText("All sections").assertDoesNotExist()
-        capture("gender")
-        choose("Woman"); next()
-        choose("Adult"); next()
-        choose("Relaxed")
+        onNodeWithText("Describe your character").performTextReplacement("An adult traveling cartographer")
+        runOnIdle { assertContains(editor.state.value.effectivePrompt, "traveling cartographer") }
+        capture("subject")
+        // Exercise the real category navigator before switching with the state holder for deeper checks.
+        onAllNodesWithText("Pose & acting", substring = false)[0].performScrollTo().performClick()
+        onNodeWithContentDescription("Relaxed", substring = false).performScrollTo().performClick()
+        runOnIdle { assertEquals(BasePose.CONTRAPPOSTO, editor.state.value.project.pose.basePose) }
         capture("pose")
-        onNodeWithText("Adjust Pose").performScrollTo().performClick()
-        onNodeWithContentDescription("Left elbow").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(20f) }
-        runOnIdle { assertTrue(editor.state.value.project.pose.effectiveAdjustments.isAdjusted) }
-        next(); choose("Right"); next()
-        choose("Full Body"); next()
-        choose("Lower Center"); next()
-        choose("Negative Space"); next()
-        onNodeWithText("Step 8 of 8").assertIsDisplayed()
+        onNodeWithText("Browse all 25").performScrollTo().performClick()
+        onNodeWithText("Search Gesture").performTextInput("casual")
+        onNodeWithContentDescription("Relaxed", substring = false).assertExists()
+        onNodeWithText("Search Gesture").performTextReplacement("kneeling")
+        onNodeWithContentDescription("Kneeling", substring = false).performScrollTo().performClick()
+        runOnIdle { assertEquals(BasePose.KNEELING, editor.state.value.project.pose.basePose) }
+        onNodeWithText("Search Gesture").performTextReplacement("")
+        onNodeWithText("Show less").performScrollTo().performClick()
+        onNodeWithContentDescription("Sitting", substring = false).performScrollTo().performClick()
+        onNodeWithText("Custom pose details").performScrollTo().performTextInput("holding a folded map")
+        runOnIdle { assertContains(editor.state.value.effectivePrompt, "holding a folded map") }
+        category(StudioCategory.Camera)
+        onNodeWithContentDescription("Bust", substring = false).performScrollTo().performClick()
+        onNodeWithContentDescription("Left", substring = false).performScrollTo().performClick()
+        onNodeWithContentDescription("Diagonal", substring = false).performScrollTo().performClick()
+        onNodeWithText("Camera angle, perspective & custom composition").performScrollTo().performTextInput("camera below the subject, looking upward")
+        runOnIdle {
+            assertEquals(Framing.BUST_UP, editor.state.value.project.output.framing)
+            assertContains(editor.state.value.effectivePrompt, "camera below the subject")
+        }
+        capture("camera")
+        category(StudioCategory.Appearance)
+        onNodeWithText("Custom outfit details").performScrollTo().performTextInput("linen coat with copper clasps")
+        category(StudioCategory.Style)
+        onNodeWithContentDescription("Painterly", substring = false).performScrollTo().performClick()
+        onNodeWithText("Custom style…").performScrollTo().performClick()
+        onNodeWithText("Write your own style").performScrollTo().performClick()
+        onNode(hasSetTextAction() and hasText("Style description")).performScrollTo().performTextReplacement("Graphite on warm paper.")
+        runOnIdle { assertEquals("Graphite on warm paper.", editor.state.value.project.effectiveArtStyleCore()) }
         capture("style")
-        choose("Anime + Ink Wash")
-        onNodeWithText("Review your visual").assertIsDisplayed().performClick()
-        runOnIdle {
-            assertNull(editor.state.value.guided.step)
-            assertEquals(VisualPose.RELAXED, editor.state.value.project.visualAssembly.posePreset)
-            assertEquals(Gaze.RIGHT, editor.state.value.project.visualAssembly.gaze)
-        }
-        capture("summary")
-        choose("Edit Pose"); choose("Sitting")
-        onNodeWithText("Done", substring = false).assertIsDisplayed().performClick()
-        onNodeWithText("Your visual").assertIsDisplayed()
-        runOnIdle { assertFalse(editor.state.value.project.pose.effectiveAdjustments.isAdjusted) }
-        choose("Edit Art Style")
-        onNodeWithText("Edit Style", substring = false).performScrollTo().performClick()
-        onNodeWithText("Dramatic", substring = false).performScrollTo().performClick()
-        onNodeWithText("Vivid", substring = false).performScrollTo().performClick()
-        onNodeWithText("Advanced · Custom ART STYLE CORE").performScrollTo().performClick()
-        onNodeWithText("Edit ART STYLE CORE manually").performScrollTo().performClick()
-        onNode(hasSetTextAction() and hasText("ART STYLE CORE")).performScrollTo().performTextReplacement("My exact style.")
-        runOnIdle { assertEquals("My exact style.", editor.state.value.project.effectiveArtStyleCore()) }
-        capture("manual-style")
-        onNodeWithText("Done", substring = false).performClick()
-        onNodeWithText("Custom · Manual ART STYLE CORE").performScrollTo().assertIsDisplayed()
-        choose("Edit Art Style")
-        onNodeWithText("Use structured style").performScrollTo().performClick()
-        onNodeWithText("Done", substring = false).performClick()
-        runOnIdle { assertContains(editor.state.value.project.guideSummary(GuideStep.ArtStyle), "Dramatic") }
-        onNodeWithText("Variants & saved presets").performScrollTo().performClick()
-        onNodeWithText("Save pose").performScrollTo().performClick()
-        onNode(hasSetTextAction()).performTextInput("My seated pose")
+        category(StudioCategory.Pose)
+        if (width < 760) onNodeWithText("Presets & variants").performScrollTo().performClick() else onNodeWithText("Presets & variants").performClick()
+        onNodeWithText("Save complete").performScrollTo().performClick()
+        onNode(hasSetTextAction() and hasText("Name")).performTextInput("Mapmaker")
         onNodeWithText("Save", substring = false).performClick()
-        runOnIdle { assertEquals(VisualPose.SITTING.base, (editor.state.value.library.presets.single().value as VisualPresetValue.Pose).pose.basePose) }
+        runOnIdle { assertTrue(editor.state.value.library.presets.single().value is VisualPresetValue.Complete) }
         onNodeWithText("+ Variant").performScrollTo().performClick()
-        onNodeWithText("Create", substring = false).performClick()
+        onNodeWithText("Create").performClick()
         runOnIdle { assertEquals("16:9", editor.state.value.project.output.aspectRatio) }
-        choose("Edit Pose"); choose("Dynamic")
-        onNodeWithText("Done", substring = false).performClick()
-        onNodeWithText("Variants & saved presets").performScrollTo().performClick()
-        // The preset carousel scrolls horizontally; reveal it through the surrounding vertical panel first.
-        onNode(hasScrollAction() and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange))
-            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, 1000f) }
-        onNodeWithContentDescription("Apply Pose preset My seated pose").performScrollTo()
-        capture("preset-before")
-        onNodeWithContentDescription("Apply Pose preset My seated pose").performClick()
-        capture("preset-after")
+        onNodeWithText("Reset category").performScrollTo().performClick()
         runOnIdle {
-            assertEquals(VisualPose.SITTING, editor.state.value.project.visualAssembly.posePreset)
-            assertEquals("16:9", editor.state.value.project.output.aspectRatio)
+            assertEquals(BasePose.RELAXED_STANDING, editor.state.value.project.pose.basePose)
+            assertEquals("Graphite on warm paper.", editor.state.value.project.effectiveArtStyleCore())
         }
-        if (width < 600) onNodeWithText("Desktop 16:9 ▾").performScrollTo().performClick()
-        onNodeWithText("Phone 9:16").performScrollTo().performClick()
-        runOnIdle { assertEquals("9:16", editor.state.value.project.output.aspectRatio) }
-        onNodeWithText("Generate", substring = false).assertIsDisplayed().performClick()
+        if (width < 1180) {
+            onNodeWithText("Inspect prompt").performClick()
+            onNodeWithText("Compiled", substring = false).performClick()
+            onNodeWithText(editor.state.value.effectivePrompt, substring = false).assertExists()
+            capture("inspector")
+        }
+        onNodeWithText(if (width < 600) "Copy" else "Copy prompt", substring = false).performClick()
+        waitUntil(timeoutMillis = 5000) {
+            runCatching { java.awt.Toolkit.getDefaultToolkit().systemClipboard.getData(java.awt.datatransfer.DataFlavor.stringFlavor) == editor.state.value.effectivePrompt }.getOrDefault(false)
+        }
+        onNodeWithText("Generate", substring = false).performClick()
         onNodeWithText("Generation surface").assertIsDisplayed()
-        onNodeWithText("← Summary").performClick()
-        onNodeWithText("← Projects").performClick()
-        onNodeWithText("Journey", substring = false).performClick()
-        onNodeWithText("Your visual").assertIsDisplayed()
-        onNodeWithText("Step 1 of 8").assertDoesNotExist()
+        onNodeWithText("Back to studio").performClick()
+        capture("final")
     }
 }

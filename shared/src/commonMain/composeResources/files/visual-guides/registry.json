@@ -1,0 +1,519 @@
+{
+    "pose/relaxed-standing": {
+        "image": "pose/relaxed-standing.png",
+        "description": "relaxed standing",
+        "tags": [
+            "pose"
+        ]
+    },
+    "pose/asymmetrical-standing": {
+        "description": "asymmetrical standing",
+        "tags": [
+            "pose"
+        ],
+        "order": 101
+    },
+    "pose/contrapposto": {
+        "image": "pose/contrapposto.png",
+        "description": "contrapposto",
+        "tags": [
+            "pose"
+        ],
+        "aliases": [
+            "relaxed",
+            "casual",
+            "standing",
+            "weight shift"
+        ],
+        "order": 1
+    },
+    "pose/leaning": {
+        "image": "pose/leaning.png",
+        "description": "leaning",
+        "tags": [
+            "pose"
+        ],
+        "order": 4
+    },
+    "pose/sitting-on-ledge": {
+        "image": "pose/sitting-on-ledge.png",
+        "description": "sitting on ledge",
+        "tags": [
+            "pose"
+        ],
+        "order": 3
+    },
+    "pose/crouching": {
+        "image": "pose/crouching.png",
+        "description": "crouching",
+        "tags": [
+            "pose"
+        ],
+        "order": 5
+    },
+    "pose/perched": {
+        "description": "perched",
+        "tags": [
+            "pose"
+        ],
+        "order": 106
+    },
+    "pose/kneeling": {
+        "description": "kneeling",
+        "tags": [
+            "pose"
+        ],
+        "order": 107
+    },
+    "pose/slouched-seat": {
+        "description": "slouched seat",
+        "tags": [
+            "pose"
+        ],
+        "order": 108
+    },
+    "pose/turning-over-shoulder": {
+        "description": "turning over shoulder",
+        "tags": [
+            "pose"
+        ],
+        "order": 109
+    },
+    "pose/walking-forward": {
+        "description": "walking forward",
+        "tags": [
+            "pose"
+        ],
+        "order": 110
+    },
+    "pose/sudden-turn": {
+        "description": "sudden turn",
+        "tags": [
+            "pose"
+        ],
+        "order": 111
+    },
+    "pose/pivot": {
+        "description": "pivot",
+        "tags": [
+            "pose"
+        ],
+        "order": 112
+    },
+    "pose/stepping-through-space": {
+        "description": "stepping through space",
+        "tags": [
+            "pose"
+        ],
+        "order": 113
+    },
+    "pose/windup": {
+        "description": "windup",
+        "tags": [
+            "pose"
+        ],
+        "order": 114
+    },
+    "pose/recovery-pose": {
+        "description": "recovery pose",
+        "tags": [
+            "pose"
+        ],
+        "order": 115
+    },
+    "pose/evasive-twist": {
+        "description": "evasive twist",
+        "tags": [
+            "pose"
+        ],
+        "order": 116
+    },
+    "pose/landing": {
+        "description": "landing",
+        "tags": [
+            "pose"
+        ],
+        "order": 117
+    },
+    "pose/ready-stance": {
+        "image": "pose/ready-stance.png",
+        "description": "ready stance",
+        "tags": [
+            "pose"
+        ],
+        "order": 2
+    },
+    "pose/off-balance-recoil": {
+        "description": "off-balance recoil",
+        "tags": [
+            "pose"
+        ],
+        "order": 119
+    },
+    "pose/power-casting-gesture": {
+        "description": "power-casting gesture",
+        "tags": [
+            "pose"
+        ],
+        "order": 120
+    },
+    "pose/half-body-turn": {
+        "description": "half-body turn",
+        "tags": [
+            "pose"
+        ],
+        "order": 121
+    },
+    "pose/close-bust-pose": {
+        "description": "close bust pose",
+        "tags": [
+            "pose"
+        ],
+        "order": 122
+    },
+    "pose/over-shoulder-look": {
+        "description": "over-shoulder look",
+        "tags": [
+            "pose"
+        ],
+        "order": 123
+    },
+    "pose/hand-near-face-pose": {
+        "description": "hand-near-face pose",
+        "tags": [
+            "pose"
+        ],
+        "order": 124
+    },
+    "body-orientation/front": {
+        "image": "body-orientation/front.png",
+        "description": "Front",
+        "tags": [
+            "body-orientation"
+        ],
+        "order": 25
+    },
+    "body-orientation/three-quarter": {
+        "image": "body-orientation/three-quarter.png",
+        "description": "3/4 view",
+        "tags": [
+            "body-orientation"
+        ],
+        "order": 26
+    },
+    "body-orientation/side": {
+        "image": "body-orientation/side.png",
+        "description": "Side",
+        "tags": [
+            "body-orientation"
+        ],
+        "order": 27
+    },
+    "framing/full-body": {
+        "image": "framing/full-body.png",
+        "description": "full-body",
+        "tags": [
+            "framing"
+        ],
+        "order": 28
+    },
+    "framing/three-quarter": {
+        "image": "framing/three-quarter.png",
+        "description": "3/4",
+        "tags": [
+            "framing"
+        ],
+        "order": 29
+    },
+    "framing/thigh-up": {
+        "image": "framing/thigh-up.png",
+        "description": "thigh-up",
+        "tags": [
+            "framing"
+        ],
+        "order": 30
+    },
+    "framing/waist-up": {
+        "image": "framing/waist-up.png",
+        "description": "waist-up",
+        "tags": [
+            "framing"
+        ],
+        "order": 31
+    },
+    "framing/close-up": {
+        "image": "framing/close-up.png",
+        "description": "close-up",
+        "tags": [
+            "framing"
+        ],
+        "order": 32
+    },
+    "framing/bust-up": {
+        "image": "framing/bust-up.png",
+        "description": "bust-up",
+        "tags": [
+            "framing"
+        ],
+        "order": 33
+    },
+    "placement/center": {
+        "image": "placement/center.png",
+        "description": "center",
+        "tags": [
+            "placement"
+        ],
+        "order": 34
+    },
+    "placement/upper": {
+        "image": "placement/upper.png",
+        "description": "upper center",
+        "tags": [
+            "placement"
+        ],
+        "order": 35
+    },
+    "placement/lower": {
+        "image": "placement/lower.png",
+        "description": "lower center",
+        "tags": [
+            "placement"
+        ],
+        "order": 36
+    },
+    "placement/left": {
+        "image": "placement/left.png",
+        "description": "slightly left of center",
+        "tags": [
+            "placement"
+        ],
+        "order": 37
+    },
+    "placement/right": {
+        "image": "placement/right.png",
+        "description": "slightly right of center",
+        "tags": [
+            "placement"
+        ],
+        "order": 38
+    },
+    "composition/hero": {
+        "image": "composition/hero.png",
+        "description": "a clear central focal hierarchy with quiet supporting shapes",
+        "tags": [
+            "composition"
+        ],
+        "order": 39
+    },
+    "composition/thirds": {
+        "image": "composition/thirds.png",
+        "description": "balance supporting shapes along the frame thirds",
+        "tags": [
+            "composition"
+        ],
+        "order": 40
+    },
+    "composition/negative-space": {
+        "image": "composition/negative-space.png",
+        "description": "broad quiet space opposite the subject; sparse supporting detail",
+        "tags": [
+            "composition"
+        ],
+        "order": 41
+    },
+    "composition/symmetrical": {
+        "image": "composition/symmetrical.png",
+        "description": "mirror the supporting shapes across the frame center",
+        "tags": [
+            "composition"
+        ],
+        "order": 42
+    },
+    "composition/diagonal": {
+        "image": "composition/diagonal.png",
+        "description": "a rising diagonal flow through the supporting shapes",
+        "tags": [
+            "composition"
+        ],
+        "order": 43
+    },
+    "composition/off-center": {
+        "image": "composition/off-center.png",
+        "description": "an asymmetric balance of large and small supporting shapes",
+        "tags": [
+            "composition"
+        ],
+        "order": 44
+    },
+    "gaze/toward-viewer": {
+        "image": "gaze/toward-viewer.png",
+        "description": "toward viewer",
+        "tags": [
+            "gaze"
+        ],
+        "order": 45
+    },
+    "gaze/past-viewer": {
+        "image": "gaze/past-viewer.png",
+        "description": "past viewer",
+        "tags": [
+            "gaze"
+        ],
+        "order": 46
+    },
+    "gaze/downward": {
+        "image": "gaze/downward.png",
+        "description": "downward",
+        "tags": [
+            "gaze"
+        ],
+        "order": 47
+    },
+    "gaze/left": {
+        "image": "gaze/left.png",
+        "description": "looking left",
+        "tags": [
+            "gaze"
+        ],
+        "order": 48
+    },
+    "gaze/right": {
+        "image": "gaze/right.png",
+        "description": "looking right",
+        "tags": [
+            "gaze"
+        ],
+        "order": 49
+    },
+    "gaze/upward": {
+        "image": "gaze/upward.png",
+        "description": "looking up",
+        "tags": [
+            "gaze"
+        ],
+        "order": 50
+    },
+    "gaze/off-screen": {
+        "image": "gaze/off-screen.png",
+        "description": "off-screen",
+        "tags": [
+            "gaze"
+        ],
+        "order": 51
+    },
+    "head-direction/level": {
+        "description": "level",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 52
+    },
+    "head-direction/slight-tilt": {
+        "description": "slight tilt",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 53
+    },
+    "head-direction/chin-up": {
+        "description": "chin up",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 54
+    },
+    "head-direction/chin-down": {
+        "description": "chin down",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 55
+    },
+    "head-direction/turned-away": {
+        "description": "turned away",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 56
+    },
+    "head-direction/turned-back": {
+        "description": "turned back",
+        "tags": [
+            "head-direction"
+        ],
+        "order": 57
+    },
+    "arm-position/one-hand-in-pocket": {
+        "description": "one hand in pocket",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 58
+    },
+    "arm-position/hand-near-belt": {
+        "description": "hand near belt",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 59
+    },
+    "arm-position/hand-extended": {
+        "description": "hand extended",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 60
+    },
+    "arm-position/crossed-loosely": {
+        "description": "crossed loosely",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 61
+    },
+    "arm-position/one-arm-bracing": {
+        "description": "one arm bracing",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 62
+    },
+    "arm-position/one-arm-casting-power": {
+        "description": "one arm casting power",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 63
+    },
+    "arm-position/relaxed-naturally": {
+        "description": "relaxed naturally",
+        "tags": [
+            "arm-position"
+        ],
+        "order": 64
+    },
+    "prop-placement/none": {
+        "image": "prop-placement/none.png",
+        "description": "No prop",
+        "tags": [
+            "prop-placement"
+        ],
+        "order": 65
+    },
+    "prop-placement/down": {
+        "image": "prop-placement/down.png",
+        "description": "Held down",
+        "tags": [
+            "prop-placement"
+        ],
+        "order": 66
+    },
+    "prop-placement/shoulder": {
+        "image": "prop-placement/shoulder.png",
+        "description": "On shoulder",
+        "tags": [
+            "prop-placement"
+        ],
+        "order": 67
+    }
+}

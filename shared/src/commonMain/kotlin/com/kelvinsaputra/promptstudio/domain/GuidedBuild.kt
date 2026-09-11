@@ -90,3 +90,12 @@ fun CharacterProject.guideSummary(step: GuideStep): String = when (step) {
     GuideStep.Composition -> composition.guidePreset?.label ?: composition.directionalFlow.ifBlank { "Custom / unspecified" }
     GuideStep.ArtStyle -> artStyleSummary
 }
+
+/** New studio projects start usable without inheriting the historical demo's aesthetic. */
+fun CharacterProject.withStudioDefaults() = resetVisualAssembly().copy(
+    subject = "An original character with a clear, readable silhouette.",
+    style = ArtStylePreset("neutral-illustration", "Illustration", "A thoughtfully composed character illustration with clear forms and readable materials."),
+    artStyle = ArtStyleConfiguration(),
+    output = output.copy(type = OutputType.PORTRAIT, framing = Framing.FULL_BODY, figurePlacement = "center", negativeSpace = "", clockSafe = false, iconSafe = false),
+    exclusions = listOf("unintended text or watermarks", "unreadable anatomy"),
+)

@@ -56,7 +56,7 @@ class ProjectPersistenceTest {
         val storage = MemoryProjectStorage()
         val editor = EditorViewModel(storage = storage)
         editor.setCostumeLocks(setOf(CostumeField.Silhouette))
-        val imported = CharacterProject(costume = CostumeConfiguration(footwear = Footwear.SANDALS))
+        val imported = CharacterProject(id = editor.state.value.project.id, costume = CostumeConfiguration(footwear = Footwear.SANDALS))
         editor.importProject(ProjectJson.encode(imported))
         assertEquals(imported, editor.state.value.project)
         assertEquals(imported, CharacterLibraryJson.decode(storage.text!!).active)
@@ -67,7 +67,7 @@ class ProjectPersistenceTest {
 
     @Test fun missingAndCorruptSavesFallBackWithoutOverwritingTheFile() {
         val missing = MemoryProjectStorage()
-        assertEquals(CharacterProject(), EditorViewModel(storage = missing).state.value.project)
+        assertEquals(CharacterLibrary.newCharacter("first-study", "First study").withStudioDefaults(), EditorViewModel(storage = missing).state.value.project)
         assertEquals(0, missing.writes)
         for (text in listOf("corrupt", "{\"version\":9}")) {
             val storage = MemoryProjectStorage(text)
@@ -100,6 +100,7 @@ class ProjectPersistenceTest {
         editor.setCostume(CostumeConfiguration(customNotes = "Lining"))
         editor.resetCostume()
         assertEquals(2, storage.writes)
-        assertEquals(CharacterProject(), CharacterLibraryJson.decode(storage.text!!).active)
+        assertEquals(editor.state.value.project, CharacterLibraryJson.decode(storage.text!!).active)
+        assertEquals(CostumeConfiguration(), editor.state.value.project.costume)
     }
 }

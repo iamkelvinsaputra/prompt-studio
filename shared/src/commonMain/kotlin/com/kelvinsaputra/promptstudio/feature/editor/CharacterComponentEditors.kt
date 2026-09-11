@@ -23,7 +23,7 @@ fun CharacterComponentEditor(
     onResetPose: () -> Unit,
 ) {
     when (module) {
-        EditorModule.VisualBuild -> VisualAssemblyEditor(project, onProject)
+        EditorModule.VisualBuild -> Unit
         EditorModule.Style -> StyleEditor(project, onProject)
         EditorModule.Identity -> IdentityEditor(project, { onProject(project.copy(identity = it)) }) { onProject(project.copy(subject = it)) }
         EditorModule.Role -> RoleEditor(project.role) { onProject(project.copy(role = it)) }
@@ -57,7 +57,7 @@ fun CharacterComponentEditor(
 
 @Composable private fun IdentityEditor(value: CharacterProject, onChange: (IdentityConfiguration) -> Unit, onSubjectChange: (String) -> Unit) {
     val identity = value.identity
-    Text("Use structured identity controls. The legacy/free-form subject is retained for V0 imports.", style = MaterialTheme.typography.bodySmall)
+    Text("Combine a few defining traits with your own description.", style = MaterialTheme.typography.bodySmall)
     OptionField("Age band", identity.ageBand, AgeBand.entries) { onChange(identity.copy(ageBand = it)) }
     TextField("Age range", identity.ageRange) { onChange(identity.copy(ageRange = it)) }
     OptionField("Gender presentation", identity.genderPresentation, GenderPresentation.entries) { onChange(identity.copy(genderPresentation = it)) }
@@ -153,7 +153,7 @@ fun CharacterComponentEditor(
 }
 
 @Composable private fun GazeEditor(value: GazeConfiguration, onChange: (GazeConfiguration) -> Unit) {
-    Text("This overrides Pose’s legacy head/gaze fields when set, so the prompt stays non-duplicated.", style = MaterialTheme.typography.bodySmall)
+    Text("Direct the character’s attention.", style = MaterialTheme.typography.bodySmall)
     OptionField("Head direction", value.headDirection, Head.entries) { onChange(value.copy(headDirection = it)) }
     OptionField("Gaze target", value.gazeTarget, Gaze.entries) { onChange(value.copy(gazeTarget = it)) }
     OptionField("Intensity", value.intensity, GazeIntensity.entries) { onChange(value.copy(intensity = it)) }
@@ -161,7 +161,7 @@ fun CharacterComponentEditor(
 }
 
 @Composable private fun CompositionEditor(value: CompositionConfiguration, onChange: (CompositionConfiguration) -> Unit) {
-    Text("Framing, figure placement, negative space, and safe area live in Output to avoid duplicated state.", style = MaterialTheme.typography.bodySmall)
+    Text("Refine the visual balance and reading order.", style = MaterialTheme.typography.bodySmall)
     TextField("Directional flow", value.directionalFlow) { onChange(value.copy(directionalFlow = it)) }
     TextField("Detail concentration", value.detailConcentration) { onChange(value.copy(detailConcentration = it)) }
     TextField("Readability priority", value.readabilityPriority) { onChange(value.copy(readabilityPriority = it)) }
@@ -186,7 +186,7 @@ fun CharacterComponentEditor(
 }
 
 @Composable private fun AccentColorEditor(value: ColorAccentConfiguration, onChange: (ColorAccentConfiguration) -> Unit) {
-    Text("The locked sky-blue watercolor core stays intact; this is only a restrained secondary accent.", style = MaterialTheme.typography.bodySmall)
+    Text("Define a palette that supports your chosen style.", style = MaterialTheme.typography.bodySmall)
     OptionField("Accent color", value.accentColor, AccentColor.entries) { onChange(value.copy(accentColor = it)) }
     TextField("Allowed surfaces", value.allowedSurfaces) { onChange(value.copy(allowedSurfaces = it)) }
     TextField("Saturation ceiling", value.saturationCeiling) { onChange(value.copy(saturationCeiling = it)) }
