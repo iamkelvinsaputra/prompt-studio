@@ -324,6 +324,9 @@ enum class Gaze(override val wording: String) : PromptOption {
     TOWARD_VIEWER("toward viewer"),
     PAST_VIEWER("past viewer"),
     DOWNWARD("downward"),
+    LEFT("looking left"),
+    RIGHT("looking right"),
+    UPWARD("looking up"),
     OFF_SCREEN("off-screen")
 }
 
@@ -343,5 +346,7 @@ enum class Framing(override val wording: String) : PromptOption {
     FULL_BODY("full-body"),
     THREE_QUARTER("3/4"),
     THIGH_UP("thigh-up"),
+    WAIST_UP("waist-up"),
+    CLOSE_UP("close-up"),
     BUST_UP("bust-up")
 }

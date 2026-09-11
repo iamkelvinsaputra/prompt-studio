@@ -24,7 +24,7 @@ fun CharacterComponentEditor(
 ) {
     when (module) {
         EditorModule.VisualBuild -> VisualAssemblyEditor(project, onProject)
-        EditorModule.Style -> StyleEditor(project.style)
+        EditorModule.Style -> StyleEditor(project, onProject)
         EditorModule.Identity -> IdentityEditor(project, { onProject(project.copy(identity = it)) }) { onProject(project.copy(subject = it)) }
         EditorModule.Role -> RoleEditor(project.role) { onProject(project.copy(role = it)) }
         EditorModule.VisualThesis -> TextField("One concise design thesis", project.coreVisualThesis, multiline = true) {

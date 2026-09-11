@@ -59,6 +59,7 @@ data class EditorUiState(
     val variationLocks: Set<VariationField> = emptySet(),
     val message: String? = null,
     val saveError: String? = null,
+    val guided: GuidedNavigation = GuidedNavigation(),
 ) {
     val project: CharacterProject get() = library.active
     val compiledPrompt get() = PromptCompiler().compile(project)
@@ -91,7 +92,11 @@ class EditorViewModel(
     fun setPoseLocks(locks: Set<PoseField>) { mutableState.update { it.copy(poseLocks = locks.toSet()) } }
     fun setVariationLocks(locks: Set<VariationField>) { mutableState.update { it.copy(variationLocks = locks.toSet()) } }
 
-    fun selectCharacter(id: String) = changeLibrary(state.value.library.select(id))
+    fun selectCharacter(id: String) {
+        changeLibrary(state.value.library.select(id))
+        navigateGuide(GuidedNavigation())
+    }
+    fun navigateGuide(value: GuidedNavigation) { mutableState.update { it.copy(guided = value, module = EditorModule.VisualBuild) } }
     fun selectVariant(id: String) = changeLibrary(state.value.library.selectVariant(id))
     fun addVariant(name: String, type: OutputType) = changeLibrary(state.value.library.addVariant(name, type))
     fun renameVariant(name: String) = changeLibrary(state.value.library.renameVariant(name))
@@ -111,11 +116,12 @@ class EditorViewModel(
     fun deletePreset(id: String) = changeLibrary(state.value.library.copy(presets = state.value.library.presets.filterNot { it.id == id }))
     fun createProject(name: String, type: OutputType) {
         if (name.isBlank()) return
-        val project = CharacterLibrary.newCharacter(state.value.library.nextId(), name.trim()).resetVisualAssembly()
+        val project = CharacterLibrary.newCharacter(state.value.library.nextId(), name.trim()).withGuidedDefaults()
         val library = state.value.library.add(project.copy(output = project.output.copy(type = type)))
         changeLibrary(library.withVariants(library.activeVariants.copy(primaryName = type.name.lowercase().replaceFirstChar { it.uppercase() })))
+        navigateGuide(GuidedNavigation.newProject())
     }
-    fun newCharacter() = changeLibrary(state.value.library.add(CharacterLibrary.newCharacter(state.value.library.nextId())))
+    fun newCharacter() = createProject("New Project", OutputType.PHONE)
     fun renameCharacter(name: String) {
         val cleaned = name.trim()
         if (cleaned.isNotEmpty()) edit { copy(name = cleaned) }
@@ -182,7 +188,9 @@ class EditorViewModel(
 
     private fun changeLibrary(library: CharacterLibrary) {
         if (library == state.value.library) return
-        mutableState.update { it.copy(library = library) }
+        val changedSelection = library.activeCharacterId != state.value.library.activeCharacterId || library.activeVariants.activeId != state.value.library.activeVariants.activeId
+        mutableState.update { it.copy(library = library, guided = if (changedSelection) GuidedNavigation() else it.guided,
+            module = if (changedSelection) EditorModule.VisualBuild else it.module) }
         save(library)
     }
 
@@ -221,9 +229,9 @@ class EditorViewModel(
             showMessage("Import failed: ${e.message}")
             return
         }
-        // Locks and navigation remain session state; import replaces only the active character.
+        // Import replaces the active character and opens Summary; lock choices remain session state.
         val next = state.value.library.replaceActive(project)
-        mutableState.update { it.copy(library = next) }
+        mutableState.update { it.copy(library = next, guided = GuidedNavigation(), module = EditorModule.VisualBuild) }
         save(next)
         showMessage(if (state.value.saveError == null) "Character imported" else "Character imported, but local saving failed. Export a backup.")
     }

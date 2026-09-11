@@ -10,7 +10,7 @@ import com.kelvinsaputra.promptstudio.domain.*
 import kotlin.math.min
 
 /** Deterministic rendering, independent of remembered UI state and providers. Coordinates use a 200 × 300 body space. */
-internal fun DrawScope.drawSilhouette(state: VisualAssemblyState, aspectRatio: String?, thumbnail: Boolean, edgeToEdge: Boolean = false) {
+internal fun DrawScope.drawLegacySilhouette(state: VisualAssemblyState, aspectRatio: String?, thumbnail: Boolean, edgeToEdge: Boolean = false) {
     val parts = aspectRatio?.split(':')
     val numerator = parts?.getOrNull(0)?.trim()?.toFloatOrNull()
     val denominator = parts?.getOrNull(1)?.trim()?.toFloatOrNull()

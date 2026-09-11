@@ -47,6 +47,9 @@ fun App() {
         EditorScreen(
             state = state,
             onProjects = { projects = true },
+            onGuideNavigation = editor::navigateGuide,
+            useVisualGuide = variants.generation.useVisualGuide,
+            onVisualGuideChange = { editor.setGeneration(variants.generation.copy(useVisualGuide = it)) },
             variantContent = { VariantBar(state, editor) },
             presetContent = { PresetLibrary(state, editor) },
             generationContent = { GenerationAndHistory(state.project, generation, credentials, selection, history, editor::restoreConfiguration, editor::showMessage, GenerationVariant(variants.activeId, variants.activeName)) },

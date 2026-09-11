@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.selected
 import com.kelvinsaputra.promptstudio.domain.*
 
 @OptIn(ExperimentalLayoutApi::class)
+/** Legacy panel retained for Phase 1 compatibility tests; EditorScreen routes Visual Build to GuidedVisualBuild. */
+@Deprecated("Use GuidedVisualBuild for onboarding and Summary")
 @Composable
 fun VisualAssemblyEditor(project: CharacterProject, onProject: (CharacterProject) -> Unit) {
     val assembly = project.visualAssembly

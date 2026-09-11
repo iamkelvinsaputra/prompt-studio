@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 @Serializable
 data class GuideRenderSpec(val assembly: VisualAssemblyState, val width: Int, val height: Int, val version: Int = 1) {
     init {
-        require(version == 1) { "Unsupported guide renderer version" }
+        require(version in 1..2) { "Unsupported guide renderer version" }
         require(width in 1..1024 && height in 1..1024)
     }
     companion object {
@@ -29,8 +29,8 @@ data class GuideRenderSpec(val assembly: VisualAssemblyState, val width: Int, va
             val b = parts[1].trim().toDoubleOrNull() ?: return null
             val ratio = a / b
             if (a <= 0 || b <= 0 || !ratio.isFinite() || ratio !in (1.0 / 32)..32.0) return null
-            return if (ratio >= 1) GuideRenderSpec(assembly, 768, (768 / ratio).roundToInt())
-                else GuideRenderSpec(assembly, (768 * ratio).roundToInt(), 768)
+            return if (ratio >= 1) GuideRenderSpec(assembly, 768, (768 / ratio).roundToInt(), version = 2)
+                else GuideRenderSpec(assembly, (768 * ratio).roundToInt(), 768, version = 2)
         }
     }
 }
@@ -50,7 +50,8 @@ object LocalGuideRenderer : GuideRenderer {
     override suspend fun render(spec: GuideRenderSpec): GuideImage = withContext(Dispatchers.Default) {
         val bitmap = ImageBitmap(spec.width, spec.height)
         CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(bitmap), Size(spec.width.toFloat(), spec.height.toFloat())) {
-            drawSilhouette(spec.assembly, "${spec.width}:${spec.height}", thumbnail = false, edgeToEdge = true)
+            if (spec.version == 1) drawLegacySilhouette(spec.assembly, "${spec.width}:${spec.height}", thumbnail = false, edgeToEdge = true)
+            else drawSilhouette(spec.assembly, "${spec.width}:${spec.height}", thumbnail = false, edgeToEdge = true)
         }
         GuideImage(encodeGuidePng(bitmap), spec.width, spec.height)
     }

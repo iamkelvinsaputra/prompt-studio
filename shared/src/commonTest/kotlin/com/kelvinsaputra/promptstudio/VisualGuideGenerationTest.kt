@@ -48,7 +48,7 @@ class VisualGuideGenerationTest {
             assertNull(GuideRenderSpec.from(project().visualAssembly, ratio))
         assertNull(GuideRenderSpec.from(project().visualAssembly.copy(basePose = BasePose.KNEELING), "9:16"))
         assertFailsWith<IllegalArgumentException> { GuideRenderSpec(project().visualAssembly, 100000, 100000) }
-        assertFailsWith<IllegalArgumentException> { GuideRenderSpec(project().visualAssembly, 432, 768, version = 2) }
+        assertFailsWith<IllegalArgumentException> { GuideRenderSpec(project().visualAssembly, 432, 768, version = 3) }
     }
 
     @Test fun legacyRequestsWithoutGuideFieldsRemainTextOnly() {
@@ -78,6 +78,27 @@ class VisualGuideGenerationTest {
         assertNotNull(provider.requests.last().referenceGuide)
         assertEquals(renderer.specs.first(), renderer.specs.last())
         assertEquals(GenerationState.Success, controller.state.value.status)
+    }
+
+    @Test fun guidedStyleAndGlobalManualOwnershipReachTheExistingGenerationPipeline() = runTest {
+        val provider = Provider(); val renderer = Renderer()
+        val controller = GenerationController(this, listOf(provider), credentials(), guideRenderer = renderer)
+        val guided = project().withGuidedDefaults().withGuidePosition(VisualPlacement.LOWER)
+            .withGuideComposition(GuideComposition.NEGATIVE_SPACE).withGuideGaze(Gaze.RIGHT)
+            .withStylePreset(StyleLook.WATERCOLOR).withStyleAdjustments(StyleAdjustments(color = StyleColor.VIVID))
+        controller.generateCurrent(guided, model, useVisualGuide = true); runCurrent()
+        assertEquals(guided.effectivePrompt(), provider.requests.last().prompt)
+        assertContains(provider.requests.last().prompt, StyleColor.VIVID.wording)
+        assertEquals(guided.visualAssembly, renderer.specs.last().assembly)
+        assertEquals(2, renderer.specs.last().version)
+        val styleManual = guided.enterManualStyle().editManualStyle("Only my style rendering.")
+        controller.generateCurrent(styleManual, model, useVisualGuide = true); runCurrent()
+        assertContains(provider.requests.last().prompt, "ART STYLE CORE\n\nOnly my style rendering.")
+        assertEquals(guided.visualAssembly, renderer.specs.last().assembly)
+        val global = styleManual.enterManualPrompt().editManualPrompt("Entire prompt verbatim.")
+        controller.generateCurrent(global, model, useVisualGuide = true); runCurrent()
+        assertEquals("Entire prompt verbatim.", provider.requests.last().prompt)
+        assertEquals(styleManual.artStyle, controller.state.value.latest?.metadata?.project?.artStyle)
     }
 
     @Test fun unsupportedGuideNeverRendersOrReachesProviderButTextStillWorks() = runTest {

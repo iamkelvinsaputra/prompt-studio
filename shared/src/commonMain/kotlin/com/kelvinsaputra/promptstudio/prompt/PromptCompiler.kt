@@ -12,7 +12,7 @@ data class CompiledPrompt(val sections: List<PromptSection>) {
 class PromptCompiler {
     fun compile(project: CharacterProject): CompiledPrompt = with(project) {
         CompiledPrompt(listOfNotNull(
-            section("ART STYLE CORE", style.prompt.trim()),
+            section("ART STYLE CORE", effectiveArtStyleCore().trim()),
             section("OUTPUT INTENT", outputIntent(output)),
             section("SUBJECT", subjectBlock(identity, subject)),
             section("ROLE", roleBlock(role)),
@@ -171,8 +171,18 @@ class PromptCompiler {
         bullet("primary prop placement", propPlacementWording(visual.propPlacement).takeIf { visual.basePose != null || visual.propPlacement != GuideProp.NONE }),
         optionBullet("head angle", p.head.takeUnless { hasDedicatedGaze }), optionBullet("gaze", p.gaze.takeUnless { hasDedicatedGaze }),
         optionBullet("overall energy", p.energy), bullet("motion direction", p.motionDirection),
+        poseAdjustmentBlock(p.effectiveAdjustments),
         subsection("Additional pose notes:", p.customNotes.trim()),
     ).joinToString("\n")
+
+    private fun poseAdjustmentBlock(value: PoseAdjustments): String? {
+        if (!value.isAdjusted) return null
+        return listOf("left shoulder" to value.leftShoulder, "right shoulder" to value.rightShoulder,
+            "left elbow" to value.leftElbow, "right elbow" to value.rightElbow)
+            .filter { it.second != 0f }.joinToString("\n") { (joint, angle) ->
+                "- guide adjustment: $joint rotated ${angle.toInt()} degrees from the selected pose in the image plane"
+            }
+    }
 
     private fun gazeBlock(value: GazeConfiguration): String = listOfNotNull(
         optionBullet("head direction", value.headDirection), optionBullet("gaze", value.gazeTarget),
@@ -181,6 +191,7 @@ class PromptCompiler {
 
     private fun composition(output: OutputConfiguration, value: CompositionConfiguration, visual: VisualAssemblyState): String = listOfNotNull(
         optionBullet("framing", visual.framing), bullet("figure placement", visual.figurePlacement),
+        bullet("visual balance", value.guidePreset?.wording),
         bullet("directional flow", value.directionalFlow), bullet("negative space", output.negativeSpace),
         bullet("detail concentration", value.detailConcentration), bullet("readability priority", value.readabilityPriority),
         bullet("safe area", output.safeArea),

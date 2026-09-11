@@ -17,7 +17,7 @@ class GuideRendererTest {
     private fun darkPixels(image: BufferedImage): List<Pair<Int, Int>> = buildList {
         for (y in 0 until image.height) for (x in 0 until image.width) {
             val rgb = image.getRGB(x, y)
-            if ((rgb shr 16 and 255) < 85 && (rgb shr 8 and 255) < 90 && (rgb and 255) < 90) add(x to y)
+            if ((rgb shr 16 and 255) < 130 && (rgb shr 8 and 255) < 150 && (rgb and 255) < 170) add(x to y)
         }
     }
 
@@ -61,4 +61,27 @@ class GuideRendererTest {
             File(directory, "$name.png").writeBytes(guide.bytes())
         }
     }
+    @Test fun historicalRendererRemainsStableAndNewSemanticDimensionsReachPixels() = runBlocking {
+        val p = CharacterLibrary.newCharacter("rig").withGuidedDefaults().withVisualPose(VisualPose.RELAXED)
+        val state = p.visualAssembly
+        val legacy = GuideRenderSpec(state, 432, 768) // absent JSON version remains v1
+        assertEquals(1, legacy.version)
+        assertEquals(2, spec(state).version)
+        val changed = p.withGuideGender(GenderPresentation.MALE).withGuideAge(AgeBand.MATURE)
+            .withGuideGaze(Gaze.RIGHT).withGuideComposition(GuideComposition.DIAGONAL)
+            .withPoseAdjustments(PoseAdjustments(leftElbow = 30f))
+        assertContentEquals(pixels(decode(LocalGuideRenderer.render(legacy))),
+            pixels(decode(LocalGuideRenderer.render(legacy.copy(assembly = changed.visualAssembly)))))
+        val base = pixels(decode(LocalGuideRenderer.render(spec(state))))
+        val variants = listOf(p.withGuideGender(GenderPresentation.MALE), p.withGuideAge(AgeBand.MATURE),
+            p.withGuideGaze(Gaze.RIGHT), p.withGuideComposition(GuideComposition.DIAGONAL),
+            p.withPoseAdjustments(PoseAdjustments(leftElbow = 30f)))
+        for (variant in variants) assertFalse(base.contentEquals(pixels(decode(LocalGuideRenderer.render(spec(variant.visualAssembly))))))
+        val directory = File("build/reports/visual-guides").apply { mkdirs() }
+        for (pose in VisualPose.entries) {
+            val guide = LocalGuideRenderer.render(spec(p.withVisualPose(pose).visualAssembly))
+            File(directory, "benchmark-${pose.name.lowercase()}.png").writeBytes(guide.bytes())
+        }
+    }
+
 }

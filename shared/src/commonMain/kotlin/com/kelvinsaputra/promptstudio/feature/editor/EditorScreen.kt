@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.kelvinsaputra.promptstudio.domain.GuidedNavigation
 import com.kelvinsaputra.promptstudio.domain.CharacterProject
 import com.kelvinsaputra.promptstudio.domain.PromptMode
 import com.kelvinsaputra.promptstudio.prompt.useAutomaticPrompt
@@ -48,6 +49,9 @@ fun EditorScreen(
     onProjects: (() -> Unit)? = null,
     variantContent: @Composable () -> Unit = {},
     presetContent: @Composable () -> Unit = {},
+    onGuideNavigation: (GuidedNavigation) -> Unit = {},
+    useVisualGuide: Boolean = true,
+    onVisualGuideChange: (Boolean) -> Unit = {},
 ) {
     val sectionState = rememberSaveableStateHolder()
     val prompt = remember(state.project) { state.effectivePrompt }
@@ -58,7 +62,7 @@ fun EditorScreen(
     var characterMenu by remember { mutableStateOf(false) }
     var renameDialog by remember { mutableStateOf(false) }
     var deleteDialog by remember { mutableStateOf(false) }
-    var generating by remember { mutableStateOf(false) }
+    var generating by remember(state.project.id, state.library.activeVariants.activeId) { mutableStateOf(false) }
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); onDismissMessage() }
     }
@@ -77,6 +81,44 @@ fun EditorScreen(
             confirmButton = { TextButton(onClick = { onDeleteCharacter(); deleteDialog = false }) { Text("Delete") } },
             dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancel") } },
         )
+    }
+
+    // Visual Build has its own focused shell; detailed authoring stays available from Summary.
+    if (state.module == EditorModule.VisualBuild) {
+        Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).safeDrawingPadding().imePadding().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    onProjects?.let { TextButton(onClick = it) { Text("← Projects") } }
+                    Text(state.project.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Box {
+                        TextButton(onClick = { projectMenu = true }) { Text("File") }
+                        DropdownMenu(projectMenu, onDismissRequest = { projectMenu = false }) {
+                            DropdownMenuItem(text = { Text("Import Character") }, onClick = { projectMenu = false; onImport() })
+                            DropdownMenuItem(text = { Text("Export Character") }, onClick = { projectMenu = false; onExport() })
+                            DropdownMenuItem(text = { Text("Copy prompt") }, onClick = {
+                                projectMenu = false
+                                scope.launch {
+                                    try { clipboard.copyPromptText(prompt); snackbar.showSnackbar("Prompt copied") }
+                                    catch (e: CancellationException) { throw e }
+                                    catch (_: Exception) { snackbar.showSnackbar("Could not copy prompt") }
+                                }
+                            })
+                        }
+                    }
+                }
+                state.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = onRetrySave) { Text("Retry Save") } }
+                if (generating) {
+                    TextButton(onClick = { generating = false }) { Text("← Summary") }
+                    Box(Modifier.weight(1f)) { generationContent() }
+                } else GuidedVisualBuild(state.project, state.guided, onProject, onGuideNavigation,
+                    onGenerate = { generating = true }, onAdvanced = { onMode(EditorMode.Advanced); onModule(EditorModule.Identity) },
+                    modifier = Modifier.weight(1f).fillMaxWidth(), useVisualGuide = useVisualGuide, onVisualGuide = onVisualGuideChange,
+                    variantContent = variantContent, presetContent = presetContent)
+            }
+        }
+        return
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
@@ -130,6 +172,7 @@ fun EditorScreen(
                 TextButton(onClick = { onProject(state.project.useAutomaticPrompt()) }) { Text("Use automatic prompt") }
             }
             Spacer(Modifier.height(12.dp))
+            TextButton(onClick = { onModule(EditorModule.VisualBuild) }) { Text("← Summary") }
             if (!generating) ModeAndVariationControls(state, onMode, onVariationLocks, onRandomizeUnlocked)
             Spacer(Modifier.height(12.dp))
 

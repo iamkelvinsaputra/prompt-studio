@@ -134,6 +134,7 @@ data class CompositionConfiguration(
     val detailConcentration: String = "",
     val readabilityPriority: String = "",
     val additionalInstructions: String = "",
+    val guidePreset: GuideComposition? = null,
 )
 
 @Serializable
@@ -207,6 +208,7 @@ data class PoseConfiguration(
     /** Shared silhouette/compiler inputs. Names retained for Phase 1 JSON compatibility. */
     val guideFacing: GuideFacing = GuideFacing.FRONT,
     val guideProp: GuideProp = GuideProp.NONE,
+    val guideAdjustments: PoseAdjustments = PoseAdjustments(),
 )
 
 @Serializable
@@ -270,6 +272,7 @@ data class CharacterProject(
     val exclusions: List<String> = emptyList(),
     val priorityStack: List<String> = emptyList(),
     val promptAuthoring: PromptAuthoring = PromptAuthoring(),
+    val artStyle: ArtStyleConfiguration = ArtStyleConfiguration(),
 ) {
     init {
         require(id.isNotBlank()) { "Character id cannot be blank." }
